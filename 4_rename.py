@@ -5,9 +5,12 @@ This code will help in organizing the folder which contains the data that are re
     - a variety of datasets with varying names will be renamed to a standardized form as:
                             "2016-rain-IMD" or "1981-temp_min-IMD"
 
-* The variables that need to be adjusted are given from lines 18 and 19 *
+* The variables that need to be adjusted are given from lines 21 and 22 *
     + folder in which the files are present: "input_folder"
     + variable of the files: "var"
+        - rain = Rainfall
+        - temp_max = Maximum Temperature
+        - temp_min = Minimum Temperature
 
                                                 - k.r.bro_05
 """

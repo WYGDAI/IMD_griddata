@@ -7,22 +7,22 @@ This code will give all the information regarding the netCDF file given in "Data
 from netCDF4 import Dataset
 
 data = Dataset(
-    r"C:\Users\koust\Desktop\PhD\IMD_grid\1_IMD_GRDncConv\temp_max-realtime_nc\2016-temp_max-realtime.nc",
+    r"C:\Users\koust\Desktop\PhD\IMD_grid\1_IMD_GRDncConv\temp_min-archive_nc\Mintemp_MinT_1951.nc",
     'r'
 )
 
 
 print(data)
 
-input("Check the variables in the run statement, adjust the variables below accordingly and rerun the code. \n"
+input("Check the variables in the run statement, adjust the variables below accordingly and RERUN the code. \n"
       "Smooth run of the code means that the variables are input correctly. \n"
       "Otherwise check the variables again. \n"
       "Press any key to continue")
 
-lat = data.variables['LATITUDE']
-lon = data.variables['LONGITUDE']
+lat = data.variables['LATITUDE'] if 'LATITUDE' in data.variables else data.variables['lat']
+lon = data.variables['LONGITUDE'] if 'LONGITUDE' in data.variables else data.variables['lon']
 time = data.variables['TIME']
-variable = data.variables['temp_max']
+variable = data.variables['temp_min']
 
 lat_values = lat[:]
 lon_values = lon[:]
