@@ -5,9 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a5b8455d-26dd-44f3-8235-0b0fb3342af3" name="Changes" comment="6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working">
-      <change afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/minor_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/6_statistical_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/6_statistical_extractions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,6 +23,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -48,12 +54,13 @@
   "keyToString": {
     "Python.4_rename.executor": "Run",
     "Python.5_nc2excel.executor": "Run",
-    "Python.6_statistical_extractions.executor": "Debug",
+    "Python.6_statistical_extractions.executor": "Run",
+    "Python.minor_test.executor": "Run",
     "Python.ncInfo.executor": "Run",
     "Python.test.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "folder__input",
     "ignore.virus.scanning.warn.message": "true"
   }
 }]]></component>
@@ -102,8 +109,8 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test.py</url>
-          <line>33</line>
-          <option name="timeStamp" value="5" />
+          <line>75</line>
+          <option name="timeStamp" value="8" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
