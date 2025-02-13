@@ -154,15 +154,31 @@ def stats_annual(excel_file: str, season_days_list: np.ndarray):
     # Iterate over days in each season
     season_index = 1
     seasonal_data = np.empty((df.shape[0],0))
+    max_data = np.empty((df.shape[0], 0))
+    min_data = np.empty((df.shape[0], 0))
     season_days_count = np.empty((df.shape[0],0))
     non_zero_counts = np.empty((df.shape[0], 0))
     for season_days in season_days_list:
-        # Summation of seasonal rainfall
-        season_col_name = f"Season_{season_index}"
+        # Cumulative seasonal data
+        season_col_name = f"Cumulative_{season_index}"
         df[season_col_name] = df.apply(
-            lambda row: row.iloc[3:3 + season_days].sum(), axis=1
+            lambda row: row.iloc[3:3+season_days].sum(), axis=1
         )
         seasonal_data = np.hstack((seasonal_data, df[season_col_name].to_numpy().reshape(-1,1)))
+
+        # Maximum of seasonal data
+        max_col_name = f"Max_{season_index}"
+        df[max_col_name] = df.apply(
+            lambda row: row.iloc[3:3+season_days].max(), axis=1
+        )
+        max_data = np.hstack((max_data, df[max_col_name].to_numpy().reshape(-1,1)))
+
+        # Minimum of seasonal data
+        min_col_name = f"Min_{season_index}"
+        df[min_col_name] = df.apply(
+            lambda row: row.iloc[3:3+season_days].min(), axis=1
+        )
+        min_data = np.hstack((min_data, df[max_col_name].to_numpy().reshape(-1, 1)))
 
         # Total days in the season
         season_days_col_name = f'TotalDays_{season_index}'
@@ -174,21 +190,21 @@ def stats_annual(excel_file: str, season_days_list: np.ndarray):
         # Non-zero counts
         non_zero_col_name = f"NonZero_{season_index}"
         df[non_zero_col_name] = df.apply(
-            lambda row: np.count_nonzero(row.iloc[3:3 + season_days].values), axis=1
+            lambda row: np.count_nonzero(row.iloc[3:3+season_days].values), axis=1
         )
         non_zero_counts = np.hstack((non_zero_counts, df[non_zero_col_name].to_numpy().reshape(-1,1)))
 
         season_index += 1
 
     yearly_seasonal_sum = np.hstack((base_array, seasonal_data))
+    yearly_seasonal_max = np.hstack((base_array, max_data))
+    yearly_seasonal_min = np.hstack((base_array, min_data))
     yearly_seasonal_days = np.hstack((base_array, season_days_count))
     yearly_seasonal_wetdays = np.hstack((base_array, non_zero_counts))
 
-    return yearly_seasonal_sum, yearly_seasonal_days, yearly_seasonal_wetdays
+    return yearly_seasonal_sum, yearly_seasonal_max, yearly_seasonal_min, yearly_seasonal_days, yearly_seasonal_wetdays
 
-# Seasonal stats are extracted from multiple files for the defined time-period scale
-
-# Input number of seasons considered in a year
+# Data preprocessing
 if not preprocessed:
     while True:
         try:
@@ -204,13 +220,19 @@ if not preprocessed:
 
     # Arranging all data into 4D arrays according to the time periods
     final_season_cum_list = []
+    final_season_max_list = []
+    final_season_min_list = []
     final_season_days_list = []
     final_season_wetdays_list = []
+
     season_boundaries = None
     for period, years in time_periods.items():
         period_season_cum = []
+        period_season_max = []
+        period_season_min = []
         period_season_days = []
         period_season_wetdays = []
+
         for year in years:
             # Defining season boundaries
             if season_boundaries is None:
@@ -233,20 +255,31 @@ if not preprocessed:
                     if match.group() != str(year):
                         continue
                     else:
-                        annual_season_cum, annual_season_days, annual_season_wetdays = stats_annual(
+                        (annual_season_cum,
+                         annual_season_max,
+                         annua_season_min,
+                         annual_season_days,
+                         annual_season_wetdays) = stats_annual(
                                 excel_file=input_file_path, season_days_list=season_array
                             )
 
                         period_season_cum.append(annual_season_cum)
+                        period_season_max.append(annual_season_max)
+                        period_season_min.append(annua_season_min)
                         period_season_days.append(annual_season_days)
                         period_season_wetdays.append(annual_season_wetdays)
+
                         print(f"Year {year} ({input_file}) for period {period+1} read...")
 
         period_season_cum = np.stack(period_season_cum, axis=0)
+        period_season_max = np.stack(period_season_max, axis=0)
+        period_season_min = np.stack(period_season_min, axis=0)
         period_season_days = np.stack(period_season_days, axis=0)
         period_season_wetdays = np.stack(period_season_wetdays, axis=0)
 
         final_season_cum_list.append(period_season_cum)
+        final_season_max_list.append(period_season_max)
+        final_season_min_list.append(period_season_min)
         final_season_days_list.append(period_season_days)
         final_season_wetdays_list.append(period_season_wetdays)
 
@@ -255,13 +288,26 @@ if not preprocessed:
     # noinspection PyUnboundLocalVariable
     array_base = np.array((annual_season_cum[:, :3]))
     # Final preprocessing step - generation of seasonal data for each period
-    print("Generating base data...")
     cumulative_list = []
     for array in final_season_cum_list:
         cum_result_array = array_base.copy()
         cum_result = np.sum(array[:,:, 3:], axis=0)
         cum_result_array = np.hstack((cum_result_array, cum_result))
         cumulative_list.append(cum_result_array)
+
+    max_list = []
+    for array in final_season_max_list:
+        max_result_array = array_base.copy()
+        max_result = np.max(array[:,:, 3:], axis=0)
+        max_result_array = np.hstack((max_result_array, max_result))
+        max_list.append(max_result_array)
+
+    min_list = []
+    for array in final_season_min_list:
+        min_result_array = array_base.copy()
+        min_result = np.min(array[:,:, 3:], axis=0)
+        min_result_array = np.hstack((min_result_array, min_result))
+        max_list.append(min_result_array)
 
     days_list = []
     for array in final_season_days_list:
@@ -296,6 +342,16 @@ if not preprocessed:
                                 cum_group = h5f.create_group("cumulative_list")
                                 for j, array in enumerate(cumulative_list):
                                     cum_group.create_dataset(f"array_{j + 1}", data=array)
+
+                                # Save max_list
+                                max_group = h5f.create_group("max_list")
+                                for j, array in enumerate(max_list):
+                                    max_group.create_dataset(f"array_{j + 1}", data=array)
+
+                                # Save min_list
+                                min_group = h5f.create_group("min_list")
+                                for j, array in enumerate(min_list):
+                                    min_group.create_dataset(f"array_{j + 1}", data=array)
 
                                 # Save days_list
                                 days_group = h5f.create_group("days_list")
@@ -341,6 +397,18 @@ elif preprocessed:
         for key in cum_group:
             cumulative_list.append(np.array(cum_group[key]))
 
+        # Load max_list
+        max_list = []
+        max_group = h5f["max_list"]
+        for key in max_group:
+            max_list.append(np.array(max_group[key]))
+
+        # Load min_list
+        min_list = []
+        min_group = h5f["min_list"]
+        for key in min_group:
+            min_list.append(np.array(min_group[key]))
+
         # Load days_list
         days_list = []
         days_group = h5f["days_list"]
@@ -354,6 +422,5 @@ elif preprocessed:
             wetdays_list.append(np.array(wetdays_group[key]))
 
     print("Data loaded successfully.")
-    print(f"Loaded cumulative_list with {len(cumulative_list)} arrays.")
-    print(f"Loaded days_list with {len(days_list)} arrays.")
-    print(f"Loaded wetdays_list with {len(wetdays_list)} arrays.")
+
+
