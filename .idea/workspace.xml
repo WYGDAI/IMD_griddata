@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a5b8455d-26dd-44f3-8235-0b0fb3342af3" name="Changes" comment="6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods">
+    <list default="true" id="a5b8455d-26dd-44f3-8235-0b0fb3342af3" name="Changes" comment="6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/6_statistical_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/6_statistical_extractions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/minor_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/minor_test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,6 +40,9 @@
     &quot;accountId&quot;: &quot;a4d87112-8829-4327-9e9a-756f7b64c511&quot;
   }
 }</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
@@ -59,7 +61,7 @@
     &quot;Python.test.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;folder__input&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;
   }
 }</component>
@@ -111,16 +113,5 @@
     <MESSAGE value="6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working" />
     <MESSAGE value="6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods" />
     <option name="LAST_COMMIT_MESSAGE" value="6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/test.py</url>
-          <line>75</line>
-          <option name="timeStamp" value="8" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

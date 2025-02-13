@@ -6,8 +6,11 @@ import re
 import sys
 import numpy as np
 import pandas as pd
+from datetime import datetime
+import h5py
 
 input_folder = r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test"
+preprocessed = False
 period_length = 2
 
 # Taking out dictionary of analysis periods and list of years for which input files
@@ -127,8 +130,8 @@ def annual_days_in_season(no_of_seasons: int, current_year: int, seasons_defined
                         print(f"User input for season {len(user_defined_seasons)} added")
                         break  # In case of valid month inputs, break the retry 'while' loop
 
-                    except Exception as e:
-                        print(f"An error occurred: \n{e}\n Please try again.")
+                    except Exception as fn_e:
+                        print(f"An error occurred: \n{fn_e}\n Please try again.")
                         sys.exit()
 
                 if retype_season_months:
@@ -151,7 +154,8 @@ def stats_annual(excel_file: str, season_days_list: np.ndarray):
     # Iterate over days in each season
     season_index = 1
     seasonal_data = np.empty((df.shape[0],0))
-    non_zero_counts = np.empty((df.shape[0],0))
+    season_days_count = np.empty((df.shape[0],0))
+    non_zero_counts = np.empty((df.shape[0], 0))
     for season_days in season_days_list:
         # Summation of seasonal rainfall
         season_col_name = f"Season_{season_index}"
@@ -159,6 +163,13 @@ def stats_annual(excel_file: str, season_days_list: np.ndarray):
             lambda row: row.iloc[3:3 + season_days].sum(), axis=1
         )
         seasonal_data = np.hstack((seasonal_data, df[season_col_name].to_numpy().reshape(-1,1)))
+
+        # Total days in the season
+        season_days_col_name = f'TotalDays_{season_index}'
+        df[season_days_col_name] = df.apply(
+            lambda row: season_days, axis=1
+        )
+        season_days_count = np.hstack((season_days_count, df[season_days_col_name].to_numpy().reshape(-1,1)))
 
         # Non-zero counts
         non_zero_col_name = f"NonZero_{season_index}"
@@ -170,87 +181,179 @@ def stats_annual(excel_file: str, season_days_list: np.ndarray):
         season_index += 1
 
     yearly_seasonal_sum = np.hstack((base_array, seasonal_data))
+    yearly_seasonal_days = np.hstack((base_array, season_days_count))
     yearly_seasonal_wetdays = np.hstack((base_array, non_zero_counts))
 
-    return yearly_seasonal_sum, yearly_seasonal_wetdays
+    return yearly_seasonal_sum, yearly_seasonal_days, yearly_seasonal_wetdays
 
 # Seasonal stats are extracted from multiple files for the defined time-period scale
 
 # Input number of seasons considered in a year
-while True:
-    try:
-        total_seasons = int(input("Enter the number of seasons the year is divided into: "))
-        if total_seasons > 12:
-            print("There cannot be more than 12 seasons")
-            continue
-        break
-    except ValueError:
-        print("Invalid input. Please enter a valid integer.")
-
-time_periods = time_period(input_folder)
-
-final_season_cum_list = []
-final_season_wetdays_list = []
-season_boundaries = None
-for period, years in time_periods.items():
-    period_season_cum = []
-    period_season_wetdays = []
-    for year in years:
-        # Defining season boundaries
-        if season_boundaries is None:
-            season_array, season_boundaries = annual_days_in_season(
-                no_of_seasons=total_seasons, current_year=year
-            )
-            print("User input of seasonal boundaries registered\n")
-        else:
-            season_array, _ = annual_days_in_season(
-                no_of_seasons=total_seasons, current_year=year, seasons_defined=season_boundaries
-            )
-
-        # Matching files with years
-        for input_file in os.listdir(input_folder):
-            input_file_path = os.path.join(input_folder, input_file)
-            match = re.search(r"\d{4}", input_file)
-            if not match:
+if not preprocessed:
+    while True:
+        try:
+            total_seasons = int(input("Enter the number of seasons the year is divided into: "))
+            if total_seasons > 12:
+                print("There cannot be more than 12 seasons")
                 continue
+            break
+        except ValueError:
+            print("Invalid input. Please enter a valid integer.")
+
+    time_periods = time_period(input_folder)
+
+    # Arranging all data into 4D arrays according to the time periods
+    final_season_cum_list = []
+    final_season_days_list = []
+    final_season_wetdays_list = []
+    season_boundaries = None
+    for period, years in time_periods.items():
+        period_season_cum = []
+        period_season_days = []
+        period_season_wetdays = []
+        for year in years:
+            # Defining season boundaries
+            if season_boundaries is None:
+                season_array, season_boundaries = annual_days_in_season(
+                    no_of_seasons=total_seasons, current_year=year
+                )
+                print("User input of seasonal boundaries registered\n")
             else:
-                if match.group() != str(year):
+                season_array, _ = annual_days_in_season(
+                    no_of_seasons=total_seasons, current_year=year, seasons_defined=season_boundaries
+                )
+
+            # Matching files with years
+            for input_file in os.listdir(input_folder):
+                input_file_path = os.path.join(input_folder, input_file)
+                match = re.search(r"\d{4}", input_file)
+                if not match:
                     continue
                 else:
-                    annual_season_cum, annual_season_wetdays = stats_annual(
-                            excel_file=input_file_path, season_days_list=season_array
-                        )
+                    if match.group() != str(year):
+                        continue
+                    else:
+                        annual_season_cum, annual_season_days, annual_season_wetdays = stats_annual(
+                                excel_file=input_file_path, season_days_list=season_array
+                            )
 
-                    period_season_cum.append(annual_season_cum)
-                    period_season_wetdays.append(annual_season_wetdays)
-                    print(f"Year {year} ({input_file}) for period {period+1} read...")
-    period_season_cum = np.stack(period_season_cum, axis=0)
-    period_season_wetdays = np.stack(period_season_wetdays, axis=0)
+                        period_season_cum.append(annual_season_cum)
+                        period_season_days.append(annual_season_days)
+                        period_season_wetdays.append(annual_season_wetdays)
+                        print(f"Year {year} ({input_file}) for period {period+1} read...")
 
-    final_season_cum_list.append(period_season_cum)
-    final_season_wetdays_list.append(period_season_wetdays)
+        period_season_cum = np.stack(period_season_cum, axis=0)
+        period_season_days = np.stack(period_season_days, axis=0)
+        period_season_wetdays = np.stack(period_season_wetdays, axis=0)
 
-    print(f"\nPeriod {period + 1} out of {len(time_periods)} added\n")
+        final_season_cum_list.append(period_season_cum)
+        final_season_days_list.append(period_season_days)
+        final_season_wetdays_list.append(period_season_wetdays)
 
-array_base = np.array((annual_season_cum[:, :3]))
+        print(f"\nPeriod {period + 1} out of {len(time_periods)} added\n")
 
-print("Generating base data...")
-cumulative_list = []
-for array in final_season_cum_list:
-    cum_result_array = np.hstack((np.empty((array_base.shape[0], 0)), array_base))
-    cum_result = np.sum(array[:,:, 3:], axis=0)
-    cum_result_array = np.hstack((cum_result_array, cum_result))
-    cumulative_list.append(cum_result_array)
+    # noinspection PyUnboundLocalVariable
+    array_base = np.array((annual_season_cum[:, :3]))
+    # Final preprocessing step - generation of seasonal data for each period
+    print("Generating base data...")
+    cumulative_list = []
+    for array in final_season_cum_list:
+        cum_result_array = array_base.copy()
+        cum_result = np.sum(array[:,:, 3:], axis=0)
+        cum_result_array = np.hstack((cum_result_array, cum_result))
+        cumulative_list.append(cum_result_array)
 
-wetdays_list = []
-for array in final_season_wetdays_list:
-    wetdays_result_array = np.hstack((np.empty((array_base.shape[0], 0)), array_base))
-    wetdays_result = np.sum(array[:,:, 3:], axis=0)
-    wetdays_result_array = np.hstack((wetdays_result_array, wetdays_result))
-    wetdays_list.append(wetdays_result)
+    days_list = []
+    for array in final_season_days_list:
+        days_result_array = array_base.copy()
+        days_result = np.sum(array[:,:, 3:], axis=0)
+        days_result_array = np.hstack((days_result_array, days_result))
+        days_list.append(days_result_array)
 
-cumulative_list = pd.DataFrame(cum_result_array)
-wetdays_list = pd.DataFrame(wetdays_result_array)
+    wetdays_list = []
+    for array in final_season_wetdays_list:
+        wetdays_result_array = array_base.copy()
+        wetdays_result = np.sum(array[:,:, 3:], axis=0)
+        wetdays_result_array = np.hstack((wetdays_result_array, wetdays_result))
+        wetdays_list.append(wetdays_result_array)
 
-cumulative_list.to_excel(r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test\cum.xlsx")
-wetdays_list.to_excel(r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test\wet.xlsx")
+    print("The preprocessing steps are complete.")
+    while True:
+        try:
+            save = input("Do you want to save progress upto this point? [y/n]: ")
+            if save.lower() == 'y':
+                while True:
+                    try:
+                        save_path = input("Please enter the directory path for saving progress file: ")
+                        if os.path.exists(save_path):
+                            # Main saving mechanism
+                            current_time = datetime.now().strftime('%d-%m-%Y_%H.%M')
+                            save_file_name = f"StatExtractSave_{current_time}.h5"
+                            save_file_path = os.path.join(save_path, save_file_name)
+
+                            with h5py.File(save_file_path, 'w') as h5f:
+                                # Save cumulative_list
+                                cum_group = h5f.create_group("cumulative_list")
+                                for j, array in enumerate(cumulative_list):
+                                    cum_group.create_dataset(f"array_{j + 1}", data=array)
+
+                                # Save days_list
+                                days_group = h5f.create_group("days_list")
+                                for j, array in enumerate(days_list):
+                                    days_group.create_dataset(f"array_{j + 1}", data=array)
+
+                                # Save wetdays_list
+                                wetdays_group = h5f.create_group("wetdays_list")
+                                for j, array in enumerate(wetdays_list):
+                                    wetdays_group.create_dataset(f"array_{j + 1}", data=array)
+
+                            print(f"Progress saved as '{save_file_name}' in '{save_path}'\n"
+                                  f"To run the code from this point, switch the 'preprocessed' variable to 'True'")
+                            break
+                        else:
+                            print(f'Please enter valid directory path')
+                    except ValueError:
+                        print(f'Invalid input. Please try again.')
+                break
+            elif save.lower() == 'n':
+                print("Continuing without saving progress...")
+                break
+            else:
+                print('Please provide a valid input...')
+        except ValueError:
+            print('Please provide a valid input...')
+elif preprocessed:
+    while True:
+        try:
+            load_save = input("Path to save file: ")
+            if not os.path.exists(load_save):
+                print("Please enter valid path to save file.")
+                continue
+            break
+        except Exception as e:
+            print(f'An error occurred: {e}\n'
+                  f'Please try again...')
+
+    with h5py.File(load_save, "r") as h5f:
+        # Load cumulative_list
+        cumulative_list = []
+        cum_group = h5f["cumulative_list"]
+        for key in cum_group:
+            cumulative_list.append(np.array(cum_group[key]))
+
+        # Load days_list
+        days_list = []
+        days_group = h5f["days_list"]
+        for key in days_group:
+            days_list.append(np.array(days_group[key]))
+
+        # Load wetdays_list
+        wetdays_list = []
+        wetdays_group = h5f["wetdays_list"]
+        for key in wetdays_group:
+            wetdays_list.append(np.array(wetdays_group[key]))
+
+    print("Data loaded successfully.")
+    print(f"Loaded cumulative_list with {len(cumulative_list)} arrays.")
+    print(f"Loaded days_list with {len(days_list)} arrays.")
+    print(f"Loaded wetdays_list with {len(wetdays_list)} arrays.")
