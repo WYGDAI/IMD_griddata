@@ -345,9 +345,14 @@ elif preprocessed:
     print("Data loaded successfully.")
 
 # Functions for statistical extractions
-def mean(f_result_dictList3d: dict[str, list[list[list]]], zeroes=True):
-    f_mean_dictList3d = {fn_key: [] for fn_key in f_result_dictList3d.keys()}
-    for var in raw_stat_list:
+def mean(f_result_dictList3d: dict[str, list[list[list]]],
+         stat_list: list = None,
+         zeroes=True):
+    if stat_list is None:
+        stat_list = raw_stat_list
+
+    f_mean_dictList3d = {f_key: [] for f_key in stat_list}
+    for var in stat_list:
         if zeroes:
             for var_2d, days_2d in zip(f_result_dictList3d[var], f_result_dictList3d['days']):
                 mean_2d = []
@@ -372,31 +377,101 @@ def mean(f_result_dictList3d: dict[str, list[list[list]]], zeroes=True):
                     mean_2d.append(mean_row)
                 f_mean_dictList3d[var].append(mean_2d)
             return f_mean_dictList3d
-def std_dev(f_final_data_dictList4d: dict[str, list[list[list[list]]]],
-            f_result_dictList3d: dict[str, list[list[list]]],
-            zeroes=True):
-    f_mean_dictList3d = mean(f_result_dictList3d, zeroes=zeroes)
-    stdDev_dictList3d = {f_key: [] for f_key in f_mean_dictList3d.keys()}
 
-    for var in raw_stat_list:
+def stdDev(f_final_data_dictList4d: dict[str, list[list[list[list]]]],
+           f_result_dictList3d: dict[str, list[list[list]]],
+           stat_list: list = None,
+           zeroes=True):
+    if stat_list is None:
+        stat_list = raw_stat_list
+    f_mean_dictList3d = mean(f_result_dictList3d, zeroes=zeroes)
+
+    f_stdDev_dictList3d = {f_key: [] for f_key in stat_list}
+    for var in stat_list:
         for mean_2d, data_3d in zip(f_mean_dictList3d[var], f_final_data_dictList4d[var]):
             stdDev_2d = []
             for mean_row, data_matrix in zip(mean_2d, data_3d):
-                data_array = np.array(data_matrix)  # Convert to NumPy array
-                mean_array = np.array(mean_row)
-
-                # Handle zero-exclusion logic
                 stdDev_row = []
-                for mean_val, height_val in zip(mean_array, zip(*data_array)):
+                # Handle zero-exclusion logic
+                for mean_val, height_val in zip(mean_row, zip(*data_matrix)):
                     filtered_values = height_val if zeroes else [val for val in height_val if val != 0]
                     if filtered_values:  # Check for non-empty list
                         variance = sum((val - mean_val) ** 2 for val in filtered_values) / len(filtered_values)
-                        stdDev = variance ** 0.5
+                        f_stdDev = variance ** 0.5
                     else:
-                        stdDev = 0  # No valid values, set to 0
-                    stdDev_row.append(stdDev)
+                        f_stdDev = 0  # No valid values, set to 0
+                    stdDev_row.append(f_stdDev)
 
                 stdDev_2d.append(stdDev_row)
-            stdDev_dictList3d[var].append(stdDev_2d)
-        return stdDev_dictList3d
+            f_stdDev_dictList3d[var].append(stdDev_2d)
+        return f_stdDev_dictList3d
 
+def skewness(f_final_data_dictList4d: dict[str, list[list[list[list]]]],
+             f_result_dictList3d: dict[str, list[list[list]]],
+             stat_list: list = None,
+             bias=False, zeroes=True):
+    if stat_list is None:
+        stat_list = raw_stat_list
+    f_mean_dictList3d = mean(f_result_dictList3d, zeroes=zeroes)
+    f_stdDev_dictList3d = stdDev(f_final_data_dictList4d, f_result_dictList3d, zeroes=zeroes)
+
+    f_skew_dictList3d = {f_key: [] for f_key in stat_list}
+    for var in stat_list:
+        for mean_2d, stdDev_2d, data_3d in zip(
+                f_mean_dictList3d[var], f_stdDev_dictList3d[var], f_final_data_dictList4d[var]
+        ):
+            skew_2d = []
+            for mean_row, stdDev_row, data_matrix in zip(mean_2d, stdDev_2d, data_3d):
+                skew_row = []
+                # Apply zero-exclusion logic
+                for mean_val, stdDev_val, height_val in zip(mean_row, stdDev_row, zip(*data_matrix)):
+                    filtered_values = height_val if zeroes else [val for val in height_val if val != 0]
+                    if filtered_values and stdDev_val != 0:  # Check for non-empty list
+                        skew = sum((val-mean_val)**3 for val in filtered_values)/(len(filtered_values)*stdDev_val**3)
+                        if not bias and len(filtered_values) > 2:
+                            n = len(filtered_values)
+                            skew *= ((n*(n-1))**0.5)/(n-2)
+                    else:
+                        skew = 0  # No valid values, set to 0
+                    skew_row.append(skew)
+                skew_2d.append(skew_row)
+            f_skew_dictList3d[var].append(skew_2d)
+    return f_skew_dictList3d
+
+def kurtosis(f_final_data_dictList4d: dict[str, list[list[list[list]]]],
+             f_result_dictList3d: dict[str, list[list[list]]],
+             stat_list: list = None,
+             bias=False, zeroes=True):
+    if stat_list is None:
+        stat_list = raw_stat_list
+    f_mean_dictList3d = mean(f_result_dictList3d, zeroes=zeroes)
+    f_stdDev_dictList3d = stdDev(f_final_data_dictList4d, f_result_dictList3d, zeroes=zeroes)
+
+    f_kurt_dictList3d = {f_key: [] for f_key in stat_list}
+    for var in stat_list:
+        for mean_2d, stdDev_2d, data_3d in zip(
+                f_mean_dictList3d[var], f_stdDev_dictList3d[var], f_final_data_dictList4d[var]
+        ):
+            kurt_2d = []
+            for mean_row, stdDev_row, data_matrix in zip(mean_2d, stdDev_2d, data_3d):
+                kurt_row = []
+                # Apply zero-exclusion logic
+                for mean_val, stdDev_val, height_val in zip(mean_row, stdDev_row, zip(*data_matrix)):
+                    filtered_values = height_val if zeroes else [val for val in height_val if val != 0]
+                    if filtered_values and stdDev_val != 0:  # Check for non-empty list
+                        kurt = sum((val - mean_val) ** 4 for val in filtered_values) / \
+                               (len(filtered_values) * stdDev_val ** 4)
+                        # Adjust for excess kurtosis
+                        kurt -= 3
+                        if not bias and len(filtered_values) > 3:
+                            n = len(filtered_values)
+                            kurt = ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * kurt - \
+                                   (3 * (n - 1) ** 2) / ((n - 2) * (n - 3))
+                    else:
+                        kurt = 0  # No valid values, set to 0
+                    kurt_row.append(kurt)
+                kurt_2d.append(kurt_row)
+            f_kurt_dictList3d[var].append(kurt_2d)
+    return f_kurt_dictList3d
+
+# Excel extractions
