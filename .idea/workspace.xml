@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a5b8455d-26dd-44f3-8235-0b0fb3342af3" name="Changes" comment="6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/6_statistical_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/6_statistical_extractions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/minor_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/minor_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,21 +50,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.4_rename.executor&quot;: &quot;Run&quot;,
-    &quot;Python.5_nc2excel.executor&quot;: &quot;Run&quot;,
-    &quot;Python.6_statistical_extractions.executor&quot;: &quot;Run&quot;,
-    &quot;Python.minor_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ncInfo.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;optimizations&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.4_rename.executor": "Run",
+    "Python.5_nc2excel.executor": "Run",
+    "Python.6_statistical_extractions.executor": "Run",
+    "Python.minor_test.executor": "Run",
+    "Python.ncInfo.executor": "Run",
+    "Python.test.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "Merging optimizations",
+    "ignore.virus.scanning.warn.message": "true",
+    "settings.editor.selected.configurable": "preferences.lookFeel"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
