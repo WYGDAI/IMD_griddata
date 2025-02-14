@@ -1,0 +1,306 @@
+Index: 6_statistical_extractions.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>\"\"\"\r\nEXTRACTING VARIOUS STATISTICAL PROPERTIES OF IMD DATA\r\n\"\"\"\r\nimport os\r\nimport re\r\nimport sys\r\nimport numpy as np\r\nimport pandas as pd\r\nfrom datetime import datetime\r\nimport h5py\r\n\r\ninput_folder = r\"C:\\Users\\koust\\Desktop\\PhD\\IMD_grid\\5_IMDexcel\\test\"\r\npreprocessed = False\r\nperiod_length = 2\r\n\r\n# Taking out dictionary of analysis periods and list of years for which input files\r\ndef time_period(folder):\r\n    year_list = []\r\n    for file in os.listdir(folder):\r\n        if file.endswith('.xlsx'):\r\n            # Only files with the year in the file name are considered\r\n            fn_match = re.search(r\"\\d{4}\", file)\r\n            if fn_match:\r\n                current_year = int(fn_match.group())\r\n            else:\r\n                print(\r\n                    f\"{file} skipped as no year is detected. Please ensure that year is included in the name of the file\"\r\n                )\r\n                continue\r\n            year_list.append(current_year)\r\n    year_list.sort()\r\n\r\n    # Checking whether dataset is complete\r\n    unavailable_years = []\r\n    for i in range(len(year_list) - 1):\r\n        if year_list[i] + 1 != year_list[i + 1]:\r\n            unavailable_years.append(year_list[i] + 1)\r\n    if unavailable_years:\r\n        print(f\"Data for the following years are not present:\\n\"\r\n              f\"{unavailable_years}\\n\"\r\n              f\"Please complete the database before proceeding forward\")\r\n        sys.exit()\r\n\r\n    time_period_dict = {i: year_list[i:i + period_length] for i in\r\n                        range(len(year_list) - (period_length - 1))}\r\n\r\n    return time_period_dict\r\n\r\n# No. of days in each of the 1 to 12 seasons in the year\r\ndef annual_days_in_season(no_of_seasons: int, current_year: int, seasons_defined = None):\r\n    # Documenting all the number of days each month has in a year\r\n    days_of_month = {\r\n        \"jan\": 31,\r\n        \"feb\": 29 if ((current_year % 4 == 0 and current_year % 100 != 0) or (current_year % 400 == 0)) else 28,\r\n        \"mar\": 31,\r\n        \"apr\": 30,\r\n        \"may\": 31,\r\n        \"jun\": 30,\r\n        \"jul\": 31,\r\n        \"aug\": 31,\r\n        \"sep\": 30,\r\n        \"oct\": 31,\r\n        \"nov\": 30,\r\n        \"dec\": 31\r\n    }\r\n    months_of_year = list(days_of_month.keys())\r\n    season_days_array = np.zeros(1 if no_of_seasons == 0 else no_of_seasons, int)\r\n\r\n    # Use predefined seasons if provided\r\n    if seasons_defined is not None:\r\n        for season_no, (start_month, end_month) in enumerate(seasons_defined):\r\n            season_months = months_of_year[\r\n                            months_of_year.index(start_month): months_of_year.index(end_month) + 1\r\n                            ]\r\n            season_days_array[season_no] = sum(days_of_month[month] for month in season_months)\r\n        return season_days_array, seasons_defined\r\n\r\n    # If predefined seasons are not provided\r\n    if no_of_seasons == 0 or no_of_seasons == 1:\r\n        season_days_array[0] = sum(days_of_month.values())\r\n        return season_days_array, None\r\n    elif no_of_seasons == 12:\r\n        for season_no in range(no_of_seasons):\r\n            season_days_array[season_no] = days_of_month[months_of_year[season_no]]\r\n        return season_days_array, None\r\n    else:\r\n        retype_season_months = True\r\n        user_defined_seasons = []\r\n        while retype_season_months:\r\n            retype_season_months = False  # Reset retype flag\r\n            for season_no in range(no_of_seasons):\r\n                while True:  # Retry until valid input is provided\r\n                    try:\r\n                        start_month = input(\r\n                            f\"\\nStarting month of season {season_no + 1} (type 'retry' to retype season boundaries): \"\r\n                        ).lower()\r\n                        if start_month.lower() == 'retry':\r\n                            print(\"\\nRe-enter season boundaries...\")\r\n                            retype_season_months = True\r\n                            break\r\n                        elif start_month not in days_of_month:\r\n                            print(\"Invalid month entered. Please try again.\")\r\n                            continue  # Retry this iteration\r\n\r\n                        end_month = input(\r\n                            f\"Ending month of season {season_no + 1} (type 'retry' to retype season boundaries): \"\r\n                        ).lower()\r\n                        if end_month.lower() == 'retry':\r\n                            print(\"\\nRe-enter season boundaries...\")\r\n                            retype_season_months = True\r\n                            break\r\n                        elif end_month not in days_of_month:\r\n                            print(\"Invalid month entered. Please try again.\")\r\n                            continue  # Retry this iteration\r\n\r\n                        if months_of_year.index(end_month) < months_of_year.index(start_month):  # Check for season\r\n                            print(\r\n                                f\"\\nEnding month must be after the starting month.\\n\"\r\n                                f\"Please re-enter for season {season_no + 1}...\"\r\n                            )\r\n                            continue  # Retry this iteration\r\n\r\n                        season_months = months_of_year[\r\n                                        months_of_year.index(start_month): months_of_year.index(end_month) + 1\r\n                        ]\r\n                        season_days = sum(days_of_month[month] for month in season_months)\r\n\r\n                        season_days_array[season_no] = season_days\r\n                        user_defined_seasons.append((start_month, end_month))\r\n                        print(f\"User input for season {len(user_defined_seasons)} added\")\r\n                        break  # In case of valid month inputs, break the retry 'while' loop\r\n\r\n                    except Exception as fn_e:\r\n                        print(f\"An error occurred: \\n{fn_e}\\n Please try again.\")\r\n                        sys.exit()\r\n\r\n                if retype_season_months:\r\n                    user_defined_seasons = []\r\n                    break\r\n\r\n            if sum(season_days_array) != sum(days_of_month.values()) and not retype_season_months:  # Check for total days\r\n                print(\"\\nThe demarcation of seasons are not strict and have overlaps or gaps.\\n\"\r\n                      \"Please re-enter the season boundaries ensuring no overlap...\")\r\n                user_defined_seasons = []\r\n                retype_season_months = True\r\n\r\n    return season_days_array, user_defined_seasons\r\n\r\n# Relevant seasonal stats are extracted for year of the current input file\r\ndef stats_annual(excel_file: str, season_days_list: np.ndarray):\r\n    df = pd.read_excel(excel_file)\r\n    # Extract the first three columns for index, lat and lon\r\n    base_array = df.iloc[: , :3].to_numpy()\r\n    # Iterate over days in each season\r\n    season_index = 1\r\n    seasonal_data = np.empty((df.shape[0],0))\r\n    max_data = np.empty((df.shape[0], 0))\r\n    min_data = np.empty((df.shape[0], 0))\r\n    season_days_count = np.empty((df.shape[0],0))\r\n    non_zero_counts = np.empty((df.shape[0], 0))\r\n    for season_days in season_days_list:\r\n        # Cumulative seasonal data\r\n        season_col_name = f\"Cumulative_{season_index}\"\r\n        df[season_col_name] = df.apply(\r\n            lambda row: row.iloc[3:3+season_days].sum(), axis=1\r\n        )\r\n        seasonal_data = np.hstack((seasonal_data, df[season_col_name].to_numpy().reshape(-1,1)))\r\n\r\n        # Maximum of seasonal data\r\n        max_col_name = f\"Max_{season_index}\"\r\n        df[max_col_name] = df.apply(\r\n            lambda row: row.iloc[3:3+season_days].max(), axis=1\r\n        )\r\n        max_data = np.hstack((max_data, df[max_col_name].to_numpy().reshape(-1,1)))\r\n\r\n        # Minimum of seasonal data\r\n        min_col_name = f\"Min_{season_index}\"\r\n        df[min_col_name] = df.apply(\r\n            lambda row: row.iloc[3:3+season_days].min(), axis=1\r\n        )\r\n        min_data = np.hstack((min_data, df[max_col_name].to_numpy().reshape(-1, 1)))\r\n\r\n        # Total days in the season\r\n        season_days_col_name = f'TotalDays_{season_index}'\r\n        df[season_days_col_name] = df.apply(\r\n            lambda row: season_days, axis=1\r\n        )\r\n        season_days_count = np.hstack((season_days_count, df[season_days_col_name].to_numpy().reshape(-1,1)))\r\n\r\n        # Non-zero counts\r\n        non_zero_col_name = f\"NonZero_{season_index}\"\r\n        df[non_zero_col_name] = df.apply(\r\n            lambda row: np.count_nonzero(row.iloc[3:3+season_days].values), axis=1\r\n        )\r\n        non_zero_counts = np.hstack((non_zero_counts, df[non_zero_col_name].to_numpy().reshape(-1,1)))\r\n\r\n        season_index += 1\r\n\r\n    yearly_seasonal_sum = np.hstack((base_array, seasonal_data))\r\n    yearly_seasonal_max = np.hstack((base_array, max_data))\r\n    yearly_seasonal_min = np.hstack((base_array, min_data))\r\n    yearly_seasonal_days = np.hstack((base_array, season_days_count))\r\n    yearly_seasonal_wetdays = np.hstack((base_array, non_zero_counts))\r\n\r\n    return yearly_seasonal_sum, yearly_seasonal_max, yearly_seasonal_min, yearly_seasonal_days, yearly_seasonal_wetdays\r\n\r\n# Data preprocessing\r\nif not preprocessed:\r\n    while True:\r\n        try:\r\n            total_seasons = int(input(\"Enter the number of seasons the year is divided into: \"))\r\n            if total_seasons > 12:\r\n                print(\"There cannot be more than 12 seasons\")\r\n                continue\r\n            break\r\n        except ValueError:\r\n            print(\"Invalid input. Please enter a valid integer.\")\r\n\r\n    time_periods = time_period(input_folder)\r\n\r\n    # Arranging all data into 4D arrays according to the time periods\r\n    final_season_cum_list = []\r\n    final_season_max_list = []\r\n    final_season_min_list = []\r\n    final_season_days_list = []\r\n    final_season_wetdays_list = []\r\n\r\n    season_boundaries = None\r\n    for period, years in time_periods.items():\r\n        period_season_cum = []\r\n        period_season_max = []\r\n        period_season_min = []\r\n        period_season_days = []\r\n        period_season_wetdays = []\r\n\r\n        for year in years:\r\n            # Defining season boundaries\r\n            if season_boundaries is None:\r\n                season_array, season_boundaries = annual_days_in_season(\r\n                    no_of_seasons=total_seasons, current_year=year\r\n                )\r\n                print(\"User input of seasonal boundaries registered\\n\")\r\n            else:\r\n                season_array, _ = annual_days_in_season(\r\n                    no_of_seasons=total_seasons, current_year=year, seasons_defined=season_boundaries\r\n                )\r\n\r\n            # Matching files with years\r\n            for input_file in os.listdir(input_folder):\r\n                input_file_path = os.path.join(input_folder, input_file)\r\n                match = re.search(r\"\\d{4}\", input_file)\r\n                if not match:\r\n                    continue\r\n                else:\r\n                    if match.group() != str(year):\r\n                        continue\r\n                    else:\r\n                        (annual_season_cum,\r\n                         annual_season_max,\r\n                         annua_season_min,\r\n                         annual_season_days,\r\n                         annual_season_wetdays) = stats_annual(\r\n                                excel_file=input_file_path, season_days_list=season_array\r\n                            )\r\n\r\n                        period_season_cum.append(annual_season_cum)\r\n                        period_season_max.append(annual_season_max)\r\n                        period_season_min.append(annua_season_min)\r\n                        period_season_days.append(annual_season_days)\r\n                        period_season_wetdays.append(annual_season_wetdays)\r\n\r\n                        print(f\"Year {year} ({input_file}) for period {period+1} read...\")\r\n\r\n        period_season_cum = np.stack(period_season_cum, axis=0)\r\n        period_season_max = np.stack(period_season_max, axis=0)\r\n        period_season_min = np.stack(period_season_min, axis=0)\r\n        period_season_days = np.stack(period_season_days, axis=0)\r\n        period_season_wetdays = np.stack(period_season_wetdays, axis=0)\r\n\r\n        final_season_cum_list.append(period_season_cum)\r\n        final_season_max_list.append(period_season_max)\r\n        final_season_min_list.append(period_season_min)\r\n        final_season_days_list.append(period_season_days)\r\n        final_season_wetdays_list.append(period_season_wetdays)\r\n\r\n        print(f\"\\nPeriod {period + 1} out of {len(time_periods)} added\\n\")\r\n\r\n    # noinspection PyUnboundLocalVariable\r\n    array_base = np.array((annual_season_cum[:, :3]))\r\n    # Final preprocessing step - generation of seasonal data for each period\r\n    cumulative_list = []\r\n    for array in final_season_cum_list:\r\n        cum_result_array = array_base.copy()\r\n        cum_result = np.sum(array[:,:, 3:], axis=0)\r\n        cum_result_array = np.hstack((cum_result_array, cum_result))\r\n        cumulative_list.append(cum_result_array)\r\n\r\n    max_list = []\r\n    for array in final_season_max_list:\r\n        max_result_array = array_base.copy()\r\n        max_result = np.max(array[:,:, 3:], axis=0)\r\n        max_result_array = np.hstack((max_result_array, max_result))\r\n        max_list.append(max_result_array)\r\n\r\n    min_list = []\r\n    for array in final_season_min_list:\r\n        min_result_array = array_base.copy()\r\n        min_result = np.min(array[:,:, 3:], axis=0)\r\n        min_result_array = np.hstack((min_result_array, min_result))\r\n        max_list.append(min_result_array)\r\n\r\n    days_list = []\r\n    for array in final_season_days_list:\r\n        days_result_array = array_base.copy()\r\n        days_result = np.sum(array[:,:, 3:], axis=0)\r\n        days_result_array = np.hstack((days_result_array, days_result))\r\n        days_list.append(days_result_array)\r\n\r\n    wetdays_list = []\r\n    for array in final_season_wetdays_list:\r\n        wetdays_result_array = array_base.copy()\r\n        wetdays_result = np.sum(array[:,:, 3:], axis=0)\r\n        wetdays_result_array = np.hstack((wetdays_result_array, wetdays_result))\r\n        wetdays_list.append(wetdays_result_array)\r\n\r\n    print(\"The preprocessing steps are complete.\")\r\n    while True:\r\n        try:\r\n            save = input(\"Do you want to save progress upto this point? [y/n]: \")\r\n            if save.lower() == 'y':\r\n                while True:\r\n                    try:\r\n                        save_path = input(\"Please enter the directory path for saving progress file: \")\r\n                        if os.path.exists(save_path):\r\n                            # Main saving mechanism\r\n                            current_time = datetime.now().strftime('%d-%m-%Y_%H.%M')\r\n                            save_file_name = f\"StatExtractSave_{current_time}.h5\"\r\n                            save_file_path = os.path.join(save_path, save_file_name)\r\n\r\n                            with h5py.File(save_file_path, 'w') as h5f:\r\n                                # Save cumulative_list\r\n                                cum_group = h5f.create_group(\"cumulative_list\")\r\n                                for j, array in enumerate(cumulative_list):\r\n                                    cum_group.create_dataset(f\"array_{j + 1}\", data=array)\r\n\r\n                                # Save max_list\r\n                                max_group = h5f.create_group(\"max_list\")\r\n                                for j, array in enumerate(max_list):\r\n                                    max_group.create_dataset(f\"array_{j + 1}\", data=array)\r\n\r\n                                # Save min_list\r\n                                min_group = h5f.create_group(\"min_list\")\r\n                                for j, array in enumerate(min_list):\r\n                                    min_group.create_dataset(f\"array_{j + 1}\", data=array)\r\n\r\n                                # Save days_list\r\n                                days_group = h5f.create_group(\"days_list\")\r\n                                for j, array in enumerate(days_list):\r\n                                    days_group.create_dataset(f\"array_{j + 1}\", data=array)\r\n\r\n                                # Save wetdays_list\r\n                                wetdays_group = h5f.create_group(\"wetdays_list\")\r\n                                for j, array in enumerate(wetdays_list):\r\n                                    wetdays_group.create_dataset(f\"array_{j + 1}\", data=array)\r\n\r\n                            print(f\"Progress saved as '{save_file_name}' in '{save_path}'\\n\"\r\n                                  f\"To run the code from this point, switch the 'preprocessed' variable to 'True'\")\r\n                            break\r\n                        else:\r\n                            print(f'Please enter valid directory path')\r\n                    except ValueError:\r\n                        print(f'Invalid input. Please try again.')\r\n                break\r\n            elif save.lower() == 'n':\r\n                print(\"Continuing without saving progress...\")\r\n                break\r\n            else:\r\n                print('Please provide a valid input...')\r\n        except ValueError:\r\n            print('Please provide a valid input...')\r\nelif preprocessed:\r\n    while True:\r\n        try:\r\n            load_save = input(\"Path to save file: \")\r\n            if not os.path.exists(load_save):\r\n                print(\"Please enter valid path to save file.\")\r\n                continue\r\n            break\r\n        except Exception as e:\r\n            print(f'An error occurred: {e}\\n'\r\n                  f'Please try again...')\r\n\r\n    with h5py.File(load_save, \"r\") as h5f:\r\n        # Load cumulative_list\r\n        cumulative_list = []\r\n        cum_group = h5f[\"cumulative_list\"]\r\n        for key in cum_group:\r\n            cumulative_list.append(np.array(cum_group[key]))\r\n\r\n        # Load max_list\r\n        max_list = []\r\n        max_group = h5f[\"max_list\"]\r\n        for key in max_group:\r\n            max_list.append(np.array(max_group[key]))\r\n\r\n        # Load min_list\r\n        min_list = []\r\n        min_group = h5f[\"min_list\"]\r\n        for key in min_group:\r\n            min_list.append(np.array(min_group[key]))\r\n\r\n        # Load days_list\r\n        days_list = []\r\n        days_group = h5f[\"days_list\"]\r\n        for key in days_group:\r\n            days_list.append(np.array(days_group[key]))\r\n\r\n        # Load wetdays_list\r\n        wetdays_list = []\r\n        wetdays_group = h5f[\"wetdays_list\"]\r\n        for key in wetdays_group:\r\n            wetdays_list.append(np.array(wetdays_group[key]))\r\n\r\n    print(\"Data loaded successfully.\")\r\n\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/6_statistical_extractions.py b/6_statistical_extractions.py
+--- a/6_statistical_extractions.py	(revision 5eb033aa094944b3a9f8c0d4ce516a1901ddc819)
++++ b/6_statistical_extractions.py	(date 1739443347924)
+@@ -204,6 +204,42 @@
+ 
+     return yearly_seasonal_sum, yearly_seasonal_max, yearly_seasonal_min, yearly_seasonal_days, yearly_seasonal_wetdays
+ 
++# Final pre-processing into lists
++def process_data_list(fn_data_list, operation, fn_array_base):
++    processed_list = []
++    for fn_array in fn_data_list:
++        result_array = fn_array_base.copy()
++        operation_result = operation(fn_array[:, :, 3:], axis=0)
++        result_array = np.hstack((result_array, operation_result))
++        processed_list.append(result_array)
++    return processed_list
++
++# Saving to h5 group
++def save_h5(fn_h5f, group_name, fn_data_list):
++    group = fn_h5f.create_group(group_name)
++    for i, fn_array in enumerate(fn_data_list):
++        group.create_dataset(f"array_{i + 1}", data=fn_array)
++
++# Loading 2D h5 group
++def load_h5(fn_h5f, group_name):
++    fn_data_list = []
++    group = fn_h5f[group_name]
++    for key in group:
++        fn_data_list.append(np.array(group[key]))
++    return fn_data_list
++
++# Loading all 3D groups at once
++def load_all_h5_groups(fn_h5f, group_prefix):
++    loaded_data = {}
++    for key in fn_h5f.keys():
++        if key.startswith(group_prefix):
++            fn_data_list = []
++            group = fn_h5f[key]
++            for subkey in group:
++                fn_data_list.append(np.array(group[subkey]))
++            loaded_data[key] = fn_data_list
++    return loaded_data
++
+ # Data preprocessing
+ if not preprocessed:
+     while True:
+@@ -219,19 +255,17 @@
+     time_periods = time_period(input_folder)
+ 
+     # Arranging all data into 4D arrays according to the time periods
+-    final_season_cum_list = []
+-    final_season_max_list = []
+-    final_season_min_list = []
+-    final_season_days_list = []
+-    final_season_wetdays_list = []
++    final_season_data = {
++        "cum": [],
++        "max": [],
++        "min": [],
++        "days": [],
++        "wetdays": []
++    }
+ 
+     season_boundaries = None
+     for period, years in time_periods.items():
+-        period_season_cum = []
+-        period_season_max = []
+-        period_season_min = []
+-        period_season_days = []
+-        period_season_wetdays = []
++        period_data = {key: [] for key in final_season_data.keys()}
+ 
+         for year in years:
+             # Defining season boundaries
+@@ -249,79 +283,26 @@
+             for input_file in os.listdir(input_folder):
+                 input_file_path = os.path.join(input_folder, input_file)
+                 match = re.search(r"\d{4}", input_file)
+-                if not match:
+-                    continue
+-                else:
+-                    if match.group() != str(year):
+-                        continue
+-                    else:
+-                        (annual_season_cum,
+-                         annual_season_max,
+-                         annua_season_min,
+-                         annual_season_days,
+-                         annual_season_wetdays) = stats_annual(
+-                                excel_file=input_file_path, season_days_list=season_array
+-                            )
+-
+-                        period_season_cum.append(annual_season_cum)
+-                        period_season_max.append(annual_season_max)
+-                        period_season_min.append(annua_season_min)
+-                        period_season_days.append(annual_season_days)
+-                        period_season_wetdays.append(annual_season_wetdays)
+-
+-                        print(f"Year {year} ({input_file}) for period {period+1} read...")
++                if match and match.group() == str(year):
++                    stats = stats_annual(input_file_path, season_array)
++                    keys = list(final_season_data.keys())
++                    for key, stat in zip(keys, stats):
++                        period_data[key].append(stat)
++                    print(f"Year {year} ({input_file}) for period {period + 1} read...")
+ 
+-        period_season_cum = np.stack(period_season_cum, axis=0)
+-        period_season_max = np.stack(period_season_max, axis=0)
+-        period_season_min = np.stack(period_season_min, axis=0)
+-        period_season_days = np.stack(period_season_days, axis=0)
+-        period_season_wetdays = np.stack(period_season_wetdays, axis=0)
+-
+-        final_season_cum_list.append(period_season_cum)
+-        final_season_max_list.append(period_season_max)
+-        final_season_min_list.append(period_season_min)
+-        final_season_days_list.append(period_season_days)
+-        final_season_wetdays_list.append(period_season_wetdays)
++        for key, data in period_data.items():
++            stacked_data = np.stack(data, axis=0)
++            final_season_data[key].append(stacked_data)
+ 
+         print(f"\nPeriod {period + 1} out of {len(time_periods)} added\n")
+ 
+-    # noinspection PyUnboundLocalVariable
+-    array_base = np.array((annual_season_cum[:, :3]))
+-    # Final preprocessing step - generation of seasonal data for each period
+-    cumulative_list = []
+-    for array in final_season_cum_list:
+-        cum_result_array = array_base.copy()
+-        cum_result = np.sum(array[:,:, 3:], axis=0)
+-        cum_result_array = np.hstack((cum_result_array, cum_result))
+-        cumulative_list.append(cum_result_array)
+-
+-    max_list = []
+-    for array in final_season_max_list:
+-        max_result_array = array_base.copy()
+-        max_result = np.max(array[:,:, 3:], axis=0)
+-        max_result_array = np.hstack((max_result_array, max_result))
+-        max_list.append(max_result_array)
+-
+-    min_list = []
+-    for array in final_season_min_list:
+-        min_result_array = array_base.copy()
+-        min_result = np.min(array[:,:, 3:], axis=0)
+-        min_result_array = np.hstack((min_result_array, min_result))
+-        max_list.append(min_result_array)
+-
+-    days_list = []
+-    for array in final_season_days_list:
+-        days_result_array = array_base.copy()
+-        days_result = np.sum(array[:,:, 3:], axis=0)
+-        days_result_array = np.hstack((days_result_array, days_result))
+-        days_list.append(days_result_array)
+-
+-    wetdays_list = []
+-    for array in final_season_wetdays_list:
+-        wetdays_result_array = array_base.copy()
+-        wetdays_result = np.sum(array[:,:, 3:], axis=0)
+-        wetdays_result_array = np.hstack((wetdays_result_array, wetdays_result))
+-        wetdays_list.append(wetdays_result_array)
++    # Final preprocessing - generating seasonal data for each period
++    array_base = np.array((final_season_data["cum"][0][:, :3]))  # Base array for processing
++    cumulative_list = process_data_list(final_season_data["cum"], np.sum, array_base)
++    max_list = process_data_list(final_season_data["max"], np.max, array_base)
++    min_list = process_data_list(final_season_data["min"], np.min, array_base)
++    days_list = process_data_list(final_season_data["days"], np.sum, array_base)
++    wetdays_list = process_data_list(final_season_data["wetdays"], np.sum, array_base)
+ 
+     print("The preprocessing steps are complete.")
+     while True:
+@@ -338,32 +319,14 @@
+                             save_file_path = os.path.join(save_path, save_file_name)
+ 
+                             with h5py.File(save_file_path, 'w') as h5f:
+-                                # Save cumulative_list
+-                                cum_group = h5f.create_group("cumulative_list")
+-                                for j, array in enumerate(cumulative_list):
+-                                    cum_group.create_dataset(f"array_{j + 1}", data=array)
+-
+-                                # Save max_list
+-                                max_group = h5f.create_group("max_list")
+-                                for j, array in enumerate(max_list):
+-                                    max_group.create_dataset(f"array_{j + 1}", data=array)
+-
+-                                # Save min_list
+-                                min_group = h5f.create_group("min_list")
+-                                for j, array in enumerate(min_list):
+-                                    min_group.create_dataset(f"array_{j + 1}", data=array)
+-
+-                                # Save days_list
+-                                days_group = h5f.create_group("days_list")
+-                                for j, array in enumerate(days_list):
+-                                    days_group.create_dataset(f"array_{j + 1}", data=array)
+-
+-                                # Save wetdays_list
+-                                wetdays_group = h5f.create_group("wetdays_list")
+-                                for j, array in enumerate(wetdays_list):
+-                                    wetdays_group.create_dataset(f"array_{j + 1}", data=array)
+-
+-                            print(f"Progress saved as '{save_file_name}' in '{save_path}'\n"
++                                for key, data_list in final_season_data.items():
++                                    save_h5(h5f, f"final_season_{key}_list", data_list)
++                                    save_h5(h5f, "cumulative_list", cumulative_list)
++                                    save_h5(h5f, "max_list", max_list)
++                                    save_h5(h5f, "min_list", min_list)
++                                    save_h5(h5f, "days_list", days_list)
++                                    save_h5(h5f, "wetdays_list", wetdays_list)
++                                print(f"Progress saved as '{save_file_name}' in '{save_path}'\n"
+                                   f"To run the code from this point, switch the 'preprocessed' variable to 'True'")
+                             break
+                         else:
+@@ -391,36 +354,11 @@
+                   f'Please try again...')
+ 
+     with h5py.File(load_save, "r") as h5f:
+-        # Load cumulative_list
+-        cumulative_list = []
+-        cum_group = h5f["cumulative_list"]
+-        for key in cum_group:
+-            cumulative_list.append(np.array(cum_group[key]))
+-
+-        # Load max_list
+-        max_list = []
+-        max_group = h5f["max_list"]
+-        for key in max_group:
+-            max_list.append(np.array(max_group[key]))
+-
+-        # Load min_list
+-        min_list = []
+-        min_group = h5f["min_list"]
+-        for key in min_group:
+-            min_list.append(np.array(min_group[key]))
+-
+-        # Load days_list
+-        days_list = []
+-        days_group = h5f["days_list"]
+-        for key in days_group:
+-            days_list.append(np.array(days_group[key]))
+-
+-        # Load wetdays_list
+-        wetdays_list = []
+-        wetdays_group = h5f["wetdays_list"]
+-        for key in wetdays_group:
+-            wetdays_list.append(np.array(wetdays_group[key]))
+-
++        # Load all datasets
++        final_season_data = load_all_h5_groups(h5f, "final_season_")
++        cumulative_list = load_h5(h5f, "cumulative_list")
++        max_list = load_h5(h5f, "max_list")
++        min_list = load_h5(h5f, "min_list")
++        days_list = load_h5(h5f, "days_list")
++        wetdays_list = load_h5(h5f, "wetdays_list")
+     print("Data loaded successfully.")
+-
+-
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"AutoImportSettings\">\r\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\r\n  </component>\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"a5b8455d-26dd-44f3-8235-0b0fb3342af3\" name=\"Changes\" comment=\"6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working\">\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/6_statistical_extractions.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/6_statistical_extractions.py\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"FileTemplateManagerImpl\">\r\n    <option name=\"RECENT_TEMPLATES\">\r\n      <list>\r\n        <option value=\"Python Script\" />\r\n      </list>\r\n    </option>\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\r\n      <map>\r\n        <entry key=\"$PROJECT_DIR$\" value=\"main\" />\r\n      </map>\r\n    </option>\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"GitHubPullRequestSearchHistory\">{\r\n  &quot;lastFilter&quot;: {\r\n    &quot;state&quot;: &quot;OPEN&quot;,\r\n    &quot;assignee&quot;: &quot;WYGDAI&quot;\r\n  }\r\n}</component>\r\n  <component name=\"GithubPullRequestsUISettings\">{\r\n  &quot;selectedUrlAndAccountId&quot;: {\r\n    &quot;url&quot;: &quot;https://github.com/WYGDAI/IMD_griddata.git&quot;,\r\n    &quot;accountId&quot;: &quot;a4d87112-8829-4327-9e9a-756f7b64c511&quot;\r\n  }\r\n}</component>\r\n  <component name=\"ProblemsViewState\">\r\n    <option name=\"selectedTabId\" value=\"CurrentFile\" />\r\n  </component>\r\n  <component name=\"ProjectColorInfo\">{\r\n  &quot;associatedIndex&quot;: 7\r\n}</component>\r\n  <component name=\"ProjectId\" id=\"2sqrykfzs3FW3tTZGyn9QVSk9KC\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\">{\r\n  &quot;keyToString&quot;: {\r\n    &quot;Python.4_rename.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python.5_nc2excel.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python.6_statistical_extractions.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python.minor_test.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python.ncInfo.executor&quot;: &quot;Run&quot;,\r\n    &quot;Python.test.executor&quot;: &quot;Debug&quot;,\r\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,\r\n    &quot;git-widget-placeholder&quot;: &quot;main&quot;,\r\n    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;\r\n  }\r\n}</component>\r\n  <component name=\"SharedIndexes\">\r\n    <attachedChunks>\r\n      <set>\r\n        <option value=\"bundled-python-sdk-a5bc9544c897-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.23654.177\" />\r\n      </set>\r\n    </attachedChunks>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"a5b8455d-26dd-44f3-8235-0b0fb3342af3\" name=\"Changes\" comment=\"\" />\r\n      <created>1739194203572</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1739194203572</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00001\" summary=\"Major:&#10;- 5_nc2excel.py created and working&#10;&#10;Minor:&#10;- Slight modifications in 4_rename.py and ncinfo.py&#10;- 6_statistical_extractions.py added, not working\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1739263930732</created>\r\n      <option name=\"number\" value=\"00001\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1739263930732</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00002\" summary=\"6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1739277079198</created>\r\n      <option name=\"number\" value=\"00002\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00002\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1739277079198</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00003\" summary=\"6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1739364994051</created>\r\n      <option name=\"number\" value=\"00003\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00003\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1739364994051</updated>\r\n    </task>\r\n    <option name=\"localTasksCounter\" value=\"4\" />\r\n    <servers />\r\n  </component>\r\n  <component name=\"VcsManagerConfiguration\">\r\n    <MESSAGE value=\"Major:&#10;- 5_nc2excel.py created and working&#10;&#10;Minor:&#10;- Slight modifications in 4_rename.py and ncinfo.py&#10;- 6_statistical_extractions.py added, not working\" />\r\n    <MESSAGE value=\"6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working\" />\r\n    <MESSAGE value=\"6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods\" />\r\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 5eb033aa094944b3a9f8c0d4ce516a1901ddc819)
++++ b/.idea/workspace.xml	(date 1739442323218)
+@@ -51,20 +51,20 @@
+     <option name="hideEmptyMiddlePackages" value="true" />
+     <option name="showLibraryContents" value="true" />
+   </component>
+-  <component name="PropertiesComponent">{
+-  &quot;keyToString&quot;: {
+-    &quot;Python.4_rename.executor&quot;: &quot;Run&quot;,
+-    &quot;Python.5_nc2excel.executor&quot;: &quot;Run&quot;,
+-    &quot;Python.6_statistical_extractions.executor&quot;: &quot;Run&quot;,
+-    &quot;Python.minor_test.executor&quot;: &quot;Run&quot;,
+-    &quot;Python.ncInfo.executor&quot;: &quot;Run&quot;,
+-    &quot;Python.test.executor&quot;: &quot;Debug&quot;,
+-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;
++  <component name="PropertiesComponent"><![CDATA[{
++  "keyToString": {
++    "Python.4_rename.executor": "Run",
++    "Python.5_nc2excel.executor": "Run",
++    "Python.6_statistical_extractions.executor": "Run",
++    "Python.minor_test.executor": "Run",
++    "Python.ncInfo.executor": "Run",
++    "Python.test.executor": "Debug",
++    "RunOnceActivity.ShowReadmeOnStart": "true",
++    "RunOnceActivity.git.unshallow": "true",
++    "git-widget-placeholder": "optimizations",
++    "ignore.virus.scanning.warn.message": "true"
+   }
+-}</component>
++}]]></component>
+   <component name="SharedIndexes">
+     <attachedChunks>
+       <set>

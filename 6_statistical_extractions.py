@@ -13,6 +13,8 @@ input_folder = r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test"
 preprocessed = False
 period_length = 2
 
+raw_stat_list = ['cum', 'max', 'min']
+count_list = ['days', 'wetdays']
 # Taking out dictionary of analysis periods and list of years for which input files
 def time_period(folder):
     year_list = []
@@ -41,15 +43,15 @@ def time_period(folder):
               f"Please complete the database before proceeding forward")
         sys.exit()
 
-    time_period_dict = {i: year_list[i:i + period_length] for i in
+    time_period_dictList = {i: year_list[i:i + period_length] for i in
                         range(len(year_list) - (period_length - 1))}
 
-    return time_period_dict
+    return time_period_dictList
 
 # No. of days in each of the 1 to 12 seasons in the year
 def annual_days_in_season(no_of_seasons: int, current_year: int, seasons_defined = None):
     # Documenting all the number of days each month has in a year
-    days_of_month = {
+    days_of_month_dict = {
         "jan": 31,
         "feb": 29 if ((current_year % 4 == 0 and current_year % 100 != 0) or (current_year % 400 == 0)) else 28,
         "mar": 31,
@@ -63,29 +65,30 @@ def annual_days_in_season(no_of_seasons: int, current_year: int, seasons_defined
         "nov": 30,
         "dec": 31
     }
-    months_of_year = list(days_of_month.keys())
-    season_days_array = np.zeros(1 if no_of_seasons == 0 else no_of_seasons, int)
+    months_of_year_list = list(days_of_month_dict.keys())
+
+    f_season_days_array1d = np.zeros(1 if no_of_seasons == 0 else no_of_seasons, int)
 
     # Use predefined seasons if provided
     if seasons_defined is not None:
         for season_no, (start_month, end_month) in enumerate(seasons_defined):
-            season_months = months_of_year[
-                            months_of_year.index(start_month): months_of_year.index(end_month) + 1
+            season_months = months_of_year_list[
+                            months_of_year_list.index(start_month): months_of_year_list.index(end_month) + 1
                             ]
-            season_days_array[season_no] = sum(days_of_month[month] for month in season_months)
-        return season_days_array, seasons_defined
+            f_season_days_array1d[season_no] = sum(days_of_month_dict[month] for month in season_months)
+        return f_season_days_array1d, seasons_defined
 
     # If predefined seasons are not provided
     if no_of_seasons == 0 or no_of_seasons == 1:
-        season_days_array[0] = sum(days_of_month.values())
-        return season_days_array, None
+        f_season_days_array1d[0] = sum(days_of_month_dict.values())
+        return f_season_days_array1d, None
     elif no_of_seasons == 12:
         for season_no in range(no_of_seasons):
-            season_days_array[season_no] = days_of_month[months_of_year[season_no]]
-        return season_days_array, None
+            f_season_days_array1d[season_no] = days_of_month_dict[months_of_year_list[season_no]]
+        return f_season_days_array1d, None
     else:
         retype_season_months = True
-        user_defined_seasons = []
+        user_defined_seasons_listTuple = []
         while retype_season_months:
             retype_season_months = False  # Reset retype flag
             for season_no in range(no_of_seasons):
@@ -98,7 +101,7 @@ def annual_days_in_season(no_of_seasons: int, current_year: int, seasons_defined
                             print("\nRe-enter season boundaries...")
                             retype_season_months = True
                             break
-                        elif start_month not in days_of_month:
+                        elif start_month not in days_of_month_dict:
                             print("Invalid month entered. Please try again.")
                             continue  # Retry this iteration
 
@@ -109,25 +112,25 @@ def annual_days_in_season(no_of_seasons: int, current_year: int, seasons_defined
                             print("\nRe-enter season boundaries...")
                             retype_season_months = True
                             break
-                        elif end_month not in days_of_month:
+                        elif end_month not in days_of_month_dict:
                             print("Invalid month entered. Please try again.")
                             continue  # Retry this iteration
 
-                        if months_of_year.index(end_month) < months_of_year.index(start_month):  # Check for season
+                        if months_of_year_list.index(end_month) < months_of_year_list.index(start_month):  # Check for season
                             print(
                                 f"\nEnding month must be after the starting month.\n"
                                 f"Please re-enter for season {season_no + 1}..."
                             )
                             continue  # Retry this iteration
 
-                        season_months = months_of_year[
-                                        months_of_year.index(start_month): months_of_year.index(end_month) + 1
+                        season_months = months_of_year_list[
+                                        months_of_year_list.index(start_month): months_of_year_list.index(end_month) + 1
                         ]
-                        season_days = sum(days_of_month[month] for month in season_months)
+                        season_days = sum(days_of_month_dict[month] for month in season_months)
 
-                        season_days_array[season_no] = season_days
-                        user_defined_seasons.append((start_month, end_month))
-                        print(f"User input for season {len(user_defined_seasons)} added")
+                        f_season_days_array1d[season_no] = season_days
+                        user_defined_seasons_listTuple.append((start_month, end_month))
+                        print(f"User input for season {len(user_defined_seasons_listTuple)} added")
                         break  # In case of valid month inputs, break the retry 'while' loop
 
                     except Exception as fn_e:
@@ -135,74 +138,85 @@ def annual_days_in_season(no_of_seasons: int, current_year: int, seasons_defined
                         sys.exit()
 
                 if retype_season_months:
-                    user_defined_seasons = []
+                    user_defined_seasons_listTuple = []
                     break
 
-            if sum(season_days_array) != sum(days_of_month.values()) and not retype_season_months:  # Check for total days
+            if sum(f_season_days_array1d) != sum(days_of_month_dict.values()) and not retype_season_months:  # Check for total days
                 print("\nThe demarcation of seasons are not strict and have overlaps or gaps.\n"
                       "Please re-enter the season boundaries ensuring no overlap...")
-                user_defined_seasons = []
+                user_defined_seasons_listTuple = []
                 retype_season_months = True
 
-    return season_days_array, user_defined_seasons
+    return f_season_days_array1d, user_defined_seasons_listTuple
 
 # Relevant seasonal stats are extracted for year of the current input file
-def stats_annual(excel_file: str, season_days_list: np.ndarray):
+def stats_annual(excel_file: str, f_season_days_array1d: np.ndarray):
     df = pd.read_excel(excel_file)
-    # Extract the first three columns for index, lat and lon
-    base_array = df.iloc[: , :3].to_numpy()
-    # Iterate over days in each season
-    season_index = 1
-    seasonal_data = np.empty((df.shape[0],0))
-    max_data = np.empty((df.shape[0], 0))
-    min_data = np.empty((df.shape[0], 0))
-    season_days_count = np.empty((df.shape[0],0))
-    non_zero_counts = np.empty((df.shape[0], 0))
-    for season_days in season_days_list:
-        # Cumulative seasonal data
-        season_col_name = f"Cumulative_{season_index}"
-        df[season_col_name] = df.apply(
-            lambda row: row.iloc[3:3+season_days].sum(), axis=1
-        )
-        seasonal_data = np.hstack((seasonal_data, df[season_col_name].to_numpy().reshape(-1,1)))
+    f_annual_data_dictList2d = {f_key: [] for f_key in raw_stat_list + count_list}
 
-        # Maximum of seasonal data
-        max_col_name = f"Max_{season_index}"
-        df[max_col_name] = df.apply(
-            lambda row: row.iloc[3:3+season_days].max(), axis=1
-        )
-        max_data = np.hstack((max_data, df[max_col_name].to_numpy().reshape(-1,1)))
+    for season_days in f_season_days_array1d:
+        start_column = 3
+        end_column = season_days + 3
 
-        # Minimum of seasonal data
-        min_col_name = f"Min_{season_index}"
-        df[min_col_name] = df.apply(
-            lambda row: row.iloc[3:3+season_days].min(), axis=1
-        )
-        min_data = np.hstack((min_data, df[max_col_name].to_numpy().reshape(-1, 1)))
+        # Calculate raw statistics
+        for f_key in raw_stat_list:
+            if f_key == 'cum':
+                f_annual_data_dictList2d[f_key].append(df.iloc[:, start_column:end_column].sum(axis=1).to_list())
+            elif f_key == 'max':
+                f_annual_data_dictList2d[f_key].append(df.iloc[:, start_column:end_column].max(axis=1).to_list())
+            elif f_key == 'min':
+                f_annual_data_dictList2d[f_key].append(df.iloc[:, start_column:end_column].min(axis=1).to_list())
 
-        # Total days in the season
-        season_days_col_name = f'TotalDays_{season_index}'
-        df[season_days_col_name] = df.apply(
-            lambda row: season_days, axis=1
-        )
-        season_days_count = np.hstack((season_days_count, df[season_days_col_name].to_numpy().reshape(-1,1)))
+        # Calculate counts
+        for f_key in count_list:
+            if f_key == 'days':
+                f_annual_data_dictList2d[f_key].append([season_days] * len(df))
+            elif f_key == 'wetdays':
+                f_annual_data_dictList2d[f_key].append((df.iloc[:, start_column:end_column] > 0).sum(axis=1).to_list())
 
-        # Non-zero counts
-        non_zero_col_name = f"NonZero_{season_index}"
-        df[non_zero_col_name] = df.apply(
-            lambda row: np.count_nonzero(row.iloc[3:3+season_days].values), axis=1
-        )
-        non_zero_counts = np.hstack((non_zero_counts, df[non_zero_col_name].to_numpy().reshape(-1,1)))
+    return f_annual_data_dictList2d
 
-        season_index += 1
+# Saving nested dictionary as h5 dataset
+def save_nested_dict_to_h5(group, data_dict):
+    for f_key, value in data_dict.items():
+        if isinstance(value, list):  # If value is a list
+            try:
+                group.create_dataset(
+                    f_key,
+                    data=np.array(value, dtype=object),
+                    dtype=h5py.special_dtype(vlen=np.dtype('O')),
+                    compression="gzip",
+                    compression_opts=9,
+                )
+            except TypeError:
+                # Handle cases where the list contains objects not convertible to a NumPy array
+                subgroup = group.create_group(f_key)
+                for i, item in enumerate(value):
+                    subgroup.create_dataset(
+                        str(i),
+                        data=np.array(item, dtype=object),
+                        dtype=h5py.special_dtype(vlen=np.dtype('O')),
+                        compression="gzip",
+                        compression_opts=9,
+                    )
+        elif isinstance(value, dict):  # If value is a dictionary
+            subgroup = group.create_group(f_key)
+            save_nested_dict_to_h5(subgroup, value)
 
-    yearly_seasonal_sum = np.hstack((base_array, seasonal_data))
-    yearly_seasonal_max = np.hstack((base_array, max_data))
-    yearly_seasonal_min = np.hstack((base_array, min_data))
-    yearly_seasonal_days = np.hstack((base_array, season_days_count))
-    yearly_seasonal_wetdays = np.hstack((base_array, non_zero_counts))
-
-    return yearly_seasonal_sum, yearly_seasonal_max, yearly_seasonal_min, yearly_seasonal_days, yearly_seasonal_wetdays
+# Loading nested h5 file to its original form
+def load_nested_dict_from_h5(group):
+    data_dict = {}
+    for f_key in group.keys():
+        item = group[f_key]
+        if isinstance(item, h5py.Group):  # If it's a group, recurse
+            data_dict[f_key] = load_nested_dict_from_h5(item)
+        elif isinstance(item, h5py.Dataset):  # If it's a dataset, load the data
+            data = item[()]  # Extract the dataset
+            if isinstance(data, np.ndarray) and data.dtype == 'object':
+                # If the dataset contains objects, convert back to lists
+                data = data.tolist()
+            data_dict[f_key] = data
+    return data_dict
 
 # Data preprocessing
 if not preprocessed:
@@ -218,31 +232,21 @@ if not preprocessed:
 
     time_periods = time_period(input_folder)
 
-    # Arranging all data into 4D arrays according to the time periods
-    final_season_cum_list = []
-    final_season_max_list = []
-    final_season_min_list = []
-    final_season_days_list = []
-    final_season_wetdays_list = []
+    final_data_dictList4d = {f_key: [] for f_key in raw_stat_list + count_list}
 
-    season_boundaries = None
+    season_boundaries_listTuple = None
     for period, years in time_periods.items():
-        period_season_cum = []
-        period_season_max = []
-        period_season_min = []
-        period_season_days = []
-        period_season_wetdays = []
-
+        period_data_dictList3d = {f_key: [] for f_key in raw_stat_list + count_list}
         for year in years:
             # Defining season boundaries
-            if season_boundaries is None:
-                season_array, season_boundaries = annual_days_in_season(
+            if season_boundaries_listTuple is None:
+                season_days_array1d, season_boundaries_listTuple = annual_days_in_season(
                     no_of_seasons=total_seasons, current_year=year
                 )
                 print("User input of seasonal boundaries registered\n")
             else:
-                season_array, _ = annual_days_in_season(
-                    no_of_seasons=total_seasons, current_year=year, seasons_defined=season_boundaries
+                season_days_array1d, _ = annual_days_in_season(
+                    no_of_seasons=total_seasons, current_year=year, seasons_defined=season_boundaries_listTuple
                 )
 
             # Matching files with years
@@ -255,75 +259,43 @@ if not preprocessed:
                     if match.group() != str(year):
                         continue
                     else:
-                        (annual_season_cum,
-                         annual_season_max,
-                         annua_season_min,
-                         annual_season_days,
-                         annual_season_wetdays) = stats_annual(
-                                excel_file=input_file_path, season_days_list=season_array
+                        annual_data_dictList2d = stats_annual(
+                                excel_file=input_file_path, f_season_days_array1d=season_days_array1d
                             )
+                        stat_key_list = annual_data_dictList2d.keys()
+                        for key in stat_key_list:
+                            period_data_dictList3d[key].append(annual_data_dictList2d[key])
 
-                        period_season_cum.append(annual_season_cum)
-                        period_season_max.append(annual_season_max)
-                        period_season_min.append(annua_season_min)
-                        period_season_days.append(annual_season_days)
-                        period_season_wetdays.append(annual_season_wetdays)
+                        print(f"Year {year} ({input_file}) for period {period+1} analysed.")
 
-                        print(f"Year {year} ({input_file}) for period {period+1} read...")
-
-        period_season_cum = np.stack(period_season_cum, axis=0)
-        period_season_max = np.stack(period_season_max, axis=0)
-        period_season_min = np.stack(period_season_min, axis=0)
-        period_season_days = np.stack(period_season_days, axis=0)
-        period_season_wetdays = np.stack(period_season_wetdays, axis=0)
-
-        final_season_cum_list.append(period_season_cum)
-        final_season_max_list.append(period_season_max)
-        final_season_min_list.append(period_season_min)
-        final_season_days_list.append(period_season_days)
-        final_season_wetdays_list.append(period_season_wetdays)
+        stat_key_list = period_data_dictList3d.keys()
+        for key in stat_key_list:
+            final_data_dictList4d[key].append(period_data_dictList3d[key])
 
         print(f"\nPeriod {period + 1} out of {len(time_periods)} added\n")
 
-    # noinspection PyUnboundLocalVariable
-    array_base = np.array((annual_season_cum[:, :3]))
-    # Final preprocessing step - generation of seasonal data for each period
-    cumulative_list = []
-    for array in final_season_cum_list:
-        cum_result_array = array_base.copy()
-        cum_result = np.sum(array[:,:, 3:], axis=0)
-        cum_result_array = np.hstack((cum_result_array, cum_result))
-        cumulative_list.append(cum_result_array)
+    # Result dict
+    result_dictList3d = {key: [] for key in final_data_dictList4d}
 
-    max_list = []
-    for array in final_season_max_list:
-        max_result_array = array_base.copy()
-        max_result = np.max(array[:,:, 3:], axis=0)
-        max_result_array = np.hstack((max_result_array, max_result))
-        max_list.append(max_result_array)
+    # Define aggregation operations for each key
+    aggregation_functions = {
+        'cum': sum,
+        'max': max,
+        'min': min,
+        'days': sum,
+        'wetdays': sum
+    }
 
-    min_list = []
-    for array in final_season_min_list:
-        min_result_array = array_base.copy()
-        min_result = np.min(array[:,:, 3:], axis=0)
-        min_result_array = np.hstack((min_result_array, min_result))
-        max_list.append(min_result_array)
-
-    days_list = []
-    for array in final_season_days_list:
-        days_result_array = array_base.copy()
-        days_result = np.sum(array[:,:, 3:], axis=0)
-        days_result_array = np.hstack((days_result_array, days_result))
-        days_list.append(days_result_array)
-
-    wetdays_list = []
-    for array in final_season_wetdays_list:
-        wetdays_result_array = array_base.copy()
-        wetdays_result = np.sum(array[:,:, 3:], axis=0)
-        wetdays_result_array = np.hstack((wetdays_result_array, wetdays_result))
-        wetdays_list.append(wetdays_result_array)
-
+    # Process each key in final_data_dictList4d to generate result_dictList3d
+    for key, func in aggregation_functions.items():
+        for array3d in final_data_dictList4d[key]:
+            array2d = [
+                [func(row) for row in zip(*height)]
+                for height in zip(*array3d)
+            ]
+            result_dictList3d[key].append(array2d)
     print("The preprocessing steps are complete.")
+
     while True:
         try:
             save = input("Do you want to save progress upto this point? [y/n]: ")
@@ -332,37 +304,14 @@ if not preprocessed:
                     try:
                         save_path = input("Please enter the directory path for saving progress file: ")
                         if os.path.exists(save_path):
-                            # Main saving mechanism
+                            # Dynamic naming according to time of saving
                             current_time = datetime.now().strftime('%d-%m-%Y_%H.%M')
                             save_file_name = f"StatExtractSave_{current_time}.h5"
                             save_file_path = os.path.join(save_path, save_file_name)
-
+                            # Main saving mechanism
                             with h5py.File(save_file_path, 'w') as h5f:
-                                # Save cumulative_list
-                                cum_group = h5f.create_group("cumulative_list")
-                                for j, array in enumerate(cumulative_list):
-                                    cum_group.create_dataset(f"array_{j + 1}", data=array)
-
-                                # Save max_list
-                                max_group = h5f.create_group("max_list")
-                                for j, array in enumerate(max_list):
-                                    max_group.create_dataset(f"array_{j + 1}", data=array)
-
-                                # Save min_list
-                                min_group = h5f.create_group("min_list")
-                                for j, array in enumerate(min_list):
-                                    min_group.create_dataset(f"array_{j + 1}", data=array)
-
-                                # Save days_list
-                                days_group = h5f.create_group("days_list")
-                                for j, array in enumerate(days_list):
-                                    days_group.create_dataset(f"array_{j + 1}", data=array)
-
-                                # Save wetdays_list
-                                wetdays_group = h5f.create_group("wetdays_list")
-                                for j, array in enumerate(wetdays_list):
-                                    wetdays_group.create_dataset(f"array_{j + 1}", data=array)
-
+                                save_nested_dict_to_h5("final_data", final_data_dictList4d)
+                                save_nested_dict_to_h5("result_data", result_dictList3d)
                             print(f"Progress saved as '{save_file_name}' in '{save_path}'\n"
                                   f"To run the code from this point, switch the 'preprocessed' variable to 'True'")
                             break
@@ -391,36 +340,63 @@ elif preprocessed:
                   f'Please try again...')
 
     with h5py.File(load_save, "r") as h5f:
-        # Load cumulative_list
-        cumulative_list = []
-        cum_group = h5f["cumulative_list"]
-        for key in cum_group:
-            cumulative_list.append(np.array(cum_group[key]))
-
-        # Load max_list
-        max_list = []
-        max_group = h5f["max_list"]
-        for key in max_group:
-            max_list.append(np.array(max_group[key]))
-
-        # Load min_list
-        min_list = []
-        min_group = h5f["min_list"]
-        for key in min_group:
-            min_list.append(np.array(min_group[key]))
-
-        # Load days_list
-        days_list = []
-        days_group = h5f["days_list"]
-        for key in days_group:
-            days_list.append(np.array(days_group[key]))
-
-        # Load wetdays_list
-        wetdays_list = []
-        wetdays_group = h5f["wetdays_list"]
-        for key in wetdays_group:
-            wetdays_list.append(np.array(wetdays_group[key]))
-
+        final_data_dictList4d = load_nested_dict_from_h5(h5f["final_data"])
+        result_dictList3d = load_nested_dict_from_h5(h5f['result_data'])
     print("Data loaded successfully.")
 
+# Functions for statistical extractions
+def mean(f_result_dictList3d: dict[str, list[list[list]]], zeroes=True):
+    f_mean_dictList3d = {fn_key: [] for fn_key in f_result_dictList3d.keys()}
+    for var in raw_stat_list:
+        if zeroes:
+            for var_2d, days_2d in zip(f_result_dictList3d[var], f_result_dictList3d['days']):
+                mean_2d = []
+                for var_row, days_row in zip(var_2d, days_2d):
+                    mean_row = [
+                        var_val / days_val if days_val != 0 else 0
+                        for var_val, days_val in zip(var_row, days_row)
+                    ]
+                    mean_2d.append(mean_row)
+                f_mean_dictList3d[var].append(mean_2d)
+            return f_mean_dictList3d
+
+        else:
+            for var_2d, wetdays_2d in zip(f_result_dictList3d[var], f_result_dictList3d['wetdays']):
+                mean_2d = []
+                for var_row, wetdays_row in zip(var_2d, wetdays_2d):
+                    mean_row = [
+                        var_val / wetdays_val if wetdays_val != 0 else 0
+                        for var_val, wetdays_val in zip(var_row, wetdays_row)
+                    ]
+
+                    mean_2d.append(mean_row)
+                f_mean_dictList3d[var].append(mean_2d)
+            return f_mean_dictList3d
+def std_dev(f_final_data_dictList4d: dict[str, list[list[list[list]]]],
+            f_result_dictList3d: dict[str, list[list[list]]],
+            zeroes=True):
+    f_mean_dictList3d = mean(f_result_dictList3d, zeroes=zeroes)
+    stdDev_dictList3d = {f_key: [] for f_key in f_mean_dictList3d.keys()}
+
+    for var in raw_stat_list:
+        for mean_2d, data_3d in zip(f_mean_dictList3d[var], f_final_data_dictList4d[var]):
+            stdDev_2d = []
+            for mean_row, data_matrix in zip(mean_2d, data_3d):
+                data_array = np.array(data_matrix)  # Convert to NumPy array
+                mean_array = np.array(mean_row)
+
+                # Handle zero-exclusion logic
+                stdDev_row = []
+                for mean_val, height_val in zip(mean_array, zip(*data_array)):
+                    filtered_values = height_val if zeroes else [val for val in height_val if val != 0]
+                    if filtered_values:  # Check for non-empty list
+                        variance = sum((val - mean_val) ** 2 for val in filtered_values) / len(filtered_values)
+                        stdDev = variance ** 0.5
+                    else:
+                        stdDev = 0  # No valid values, set to 0
+                    stdDev_row.append(stdDev)
+
+                stdDev_2d.append(stdDev_row)
+            stdDev_dictList3d[var].append(stdDev_2d)
+        return stdDev_dictList3d
 
