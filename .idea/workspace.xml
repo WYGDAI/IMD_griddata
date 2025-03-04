@@ -60,7 +60,7 @@
     &quot;Python.6_statistical_extractions.executor&quot;: &quot;Run&quot;,
     &quot;Python.minor_test.executor&quot;: &quot;Run&quot;,
     &quot;Python.ncInfo.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;adjusting-for-different-time-scales&quot;,
@@ -71,7 +71,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-fc1d50d2d915-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.24978.54" />
+        <option value="bundled-python-sdk-14705d77f0bb-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.25659.43" />
       </set>
     </attachedChunks>
   </component>
@@ -116,5 +116,16 @@
     <MESSAGE value="6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working" />
     <MESSAGE value="6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods" />
     <option name="LAST_COMMIT_MESSAGE" value="6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test.py</url>
+          <line>291</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

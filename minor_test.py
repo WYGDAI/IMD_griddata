@@ -1,37 +1,7 @@
-# Constants
-months = ['January', 'February', 'March']
-days_in_month = {'January': 31, 'February': 28, 'March': 31}
+# Summing the second given list of numbers
+numbers_2 = [
+    6, 99, 94, 75, 81, 2, 62, 2, 5, 7, 58, 40, 17, 24, 78, 79, 90, 28, 32, 51, 11, 56, 18, 49, 93, 43, 91, 80, 27, 49, 40, 64, 80, 23, 20, 54, 31, 17, 56, 46, 67, 94, 1, 93, 35, 13, 7, 93, 63, 61, 53, 96, 72, 61, 78, 82, 14, 58, 59, 21, 8, 88, 93, 56, 35, 84, 73, 62, 67, 60, 95, 93, 4, 58, 86, 15, 9, 9, 62, 4, 10, 36, 89, 53, 71, 9, 36, 42, 97, 0, 32
+]
 
-# Season 1 ends on day 90 (March 31)
-season_days_array = [90, 60]  # Season 1 has 90 days, Season 2 starts at day 91
-
-# To simulate the transition from season to season
-current_day = 0  # Start from day 0 (January 1st)
-
-# Loop over each season
-for season_idx, season_days in enumerate(season_days_array):
-    print(f"Season {season_idx + 1} (Total days: {season_days}):")
-
-    # Loop through the months for the current season
-    current_day_in_season = current_day
-    for month in months:
-        if current_day_in_season >= current_day + season_days:
-            break  # If the season is over, stop processing months
-
-        month_days = days_in_month[month]
-
-        # Calculate the range of days for the month in the current season
-        month_start = max(current_day_in_season, current_day)  # Start from the beginning of the season or month
-        month_end = min(current_day_in_season + month_days,
-                        current_day + season_days)  # End at the season's end or month
-
-        # Output the month and its range in the season
-        print(f"  {month}: Days {month_start + 1} to {month_end}")
-
-        # Update current day for next month
-        current_day_in_season += month_days
-
-    # Update current_day to the start of the next season
-    current_day += season_days
-    print()
-
+total_sum_2 = sum(numbers_2)
+print(total_sum_2)

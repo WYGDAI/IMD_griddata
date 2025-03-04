@@ -14,6 +14,7 @@ preprocessed = False
 period_length = 2
 
 raw_stat_list = ['sum', 'max', 'min']
+
 count_list = ['days', 'wetdays']
 # Taking out dictionary of analysis periods and list of years for which input files
 def time_period(folder, f_period_length=period_length, check_complete=True):
@@ -22,7 +23,7 @@ def time_period(folder, f_period_length=period_length, check_complete=True):
 
        Args:
            folder (str): Path to the folder containing files.
-           f_period_length (int): Length of the time period to group years.
+           f_period_length (int): Length of the time period to group years for analysis
            check_complete (bool): Whether to check for missing years (default: True).
 
        Returns:
@@ -190,8 +191,7 @@ def stats_annual(excel_file: str,
                                  raw_stat_list + count_list}
 
     day_counter = 0  # Tracks the day of the year
-    month_counter = 0  # Tracks the day of the year
-
+    season_month_counter = 0
     for season_days in f_season_days_array1d:
         start_column = 3 + day_counter
         end_column = start_column + season_days
@@ -199,111 +199,58 @@ def stats_annual(excel_file: str,
         # Extract daily data for the season
         season_data = df.iloc[:, start_column:end_column].values
 
-        for f_key in raw_stat_list:
-            if f_key == 'sum':
-                # DAILY VALUES
+        for f_key in raw_stat_list + count_list:
+            # --- DAILY VALUES ---
+            if f_key in raw_stat_list:
                 daily_stat = season_data.tolist()
-                f_annual_data_dict2List3d[f_key]['daily'].append(daily_stat)
+            else:
+                if f_key == 'days':
+                    daily_stat = np.ones(season_data.shape, dtype=int).tolist()
+                elif f_key == 'wetdays':
+                    # For 'wetdays', 1 if the value > 0, else 0.
+                    daily_stat = (season_data > 0).astype(int).tolist()
+                else:
+                    print("Please remove all entries within 'count_list' except 'days' and 'wetdays'.")
+                    sys.exit(1)
+            f_annual_data_dict2List3d[f_key]['daily'].append(daily_stat)
 
-                # MONTHLY SUMS
-                monthly_stat = []
-                current_day = day_counter
-                while current_day < day_counter + season_days:
-                    month = f_months_of_year_list[month_counter]
-                    month_days = f_days_of_month_dict[month]
+            # --- MONTHLY SUMS ---
+            monthly_stat = []
+            current_day = day_counter
+            local_month_counter = season_month_counter
+            while current_day < day_counter + season_days:
+                month = f_months_of_year_list[local_month_counter]
+                month_days = f_days_of_month_dict[month]
 
-                    month_start = max(current_day, day_counter)  # Start from the beginning of the month or season
-                    month_end = min(current_day + month_days,
-                                    day_counter + season_days)  # End at month or season boundary
+                month_start = max(current_day, day_counter)  # Start from the beginning of the month or season
+                month_end = min(current_day + month_days,
+                                day_counter + season_days)  # End at month or season boundary
 
-                    # Sum columns for this month (grid points)
-                    current_month_stat = season_data[:, (month_start - day_counter):(month_end - day_counter)].sum(axis=1)
-                    monthly_stat.append(current_month_stat.tolist())
+                # Slice the season_data corresponding to this month.
+                data_slice = season_data[:, (month_start - day_counter):(month_end - day_counter)]
 
-                    current_day += month_days  # Move to the next month
+                # Dynamically call the method on the slice of season_data.
+                if f_key in raw_stat_list:
+                    current_month_stat = getattr(data_slice, f_key)(axis=1)
+                else:
+                    current_month_stat = data_slice.sum(axis=1)
+                monthly_stat.append(current_month_stat.tolist())
 
-                    # Increment month_counter to the next month
-                    month_counter = (month_counter + 1) % len(f_months_of_year_list)
+                current_day += month_days
+                local_month_counter = (local_month_counter + 1) % len(f_months_of_year_list)
+            f_annual_data_dict2List3d[f_key]['monthly'].append(monthly_stat)
 
-                f_annual_data_dict2List3d[f_key]['monthly'].append(monthly_stat)
+            # --- SEASONAL VALUES ---
+            monthly_stat_array = np.array(monthly_stat)
+            if f_key in raw_stat_list:
+                seasonal_stat = getattr(np, f_key)(np.array(monthly_stat), axis=0)
+            else:
+                seasonal_stat = np.sum(monthly_stat_array, axis=0)
+            f_annual_data_dict2List3d[f_key]['seasonal'].append(seasonal_stat)
 
-                # SEASONAL SUM
-                seasonal_stat = np.sum(monthly_stat, axis=0)
-                f_annual_data_dict2List3d[f_key]['seasonal'].append(seasonal_stat)
-
-                # Update the day_counter to the next season's start
-                day_counter += season_days
-
-            elif f_key == 'max':
-                # DAILY VALUES
-                daily_stat = season_data.tolist()
-                f_annual_data_dict2List3d[f_key]['daily'].append(daily_stat)
-
-                # MONTHLY SUMS
-                monthly_stat = []
-                current_day = day_counter
-                while current_day < day_counter + season_days:
-                    month = f_months_of_year_list[month_counter]
-                    month_days = f_days_of_month_dict[month]
-
-                    month_start = max(current_day, day_counter)  # Start from the beginning of the month or season
-                    month_end = min(current_day + month_days,
-                                    day_counter + season_days)  # End at month or season boundary
-
-                    # Sum columns for this month (grid points)
-                    current_month_stat = season_data[:, (month_start - day_counter):(month_end - day_counter)].max(axis=1)
-                    monthly_stat.append(current_month_stat.tolist())
-
-                    current_day += month_days  # Move to the next month
-
-                    # Increment month_counter to the next month
-                    month_counter = (month_counter + 1) % len(f_months_of_year_list)
-
-                f_annual_data_dict2List3d[f_key]['monthly'].append(monthly_stat)
-
-                # SEASONAL SUM
-                seasonal_stat = np.max(monthly_stat, axis=0)
-                f_annual_data_dict2List3d[f_key]['seasonal'].append(seasonal_stat)
-
-                # Update the day_counter to the next season's start
-                day_counter += season_days
-
-            elif f_key == 'min':
-                # DAILY VALUES
-                daily_stat = season_data.tolist()
-                f_annual_data_dict2List3d[f_key]['daily'].append(daily_stat)
-
-                # MONTHLY SUMS
-                monthly_stat = []
-                current_day = day_counter
-                while current_day < day_counter + season_days:
-                    month = f_months_of_year_list[month_counter]
-                    month_days = f_days_of_month_dict[month]
-
-                    month_start = max(current_day, day_counter)  # Start from the beginning of the month or season
-                    month_end = min(current_day + month_days,
-                                    day_counter + season_days)  # End at month or season boundary
-
-                    # Sum columns for this month (grid points)
-                    current_month_stat = season_data[:, (month_start - day_counter):(month_end - day_counter)].min(axis=1)
-                    monthly_stat.append(current_month_stat.tolist())
-
-                    current_day += month_days  # Move to the next month
-
-                    # Increment month_counter to the next month
-                    month_counter = (month_counter + 1) % len(f_months_of_year_list)
-
-                f_annual_data_dict2List3d[f_key]['monthly'].append(monthly_stat)
-
-                # SEASONAL SUM
-                seasonal_stat = np.min(monthly_stat, axis=0)
-                f_annual_data_dict2List3d[f_key]['seasonal'].append(seasonal_stat)
-
-                # Update the day_counter to the next season's start
-                day_counter += season_days
-
-            elif f_key == 'days':
-
+        # Update the day_counter to the next season's start
+        day_counter += season_days
+        season_month_counter = local_month_counter
 
     return f_annual_data_dict2List3d
 
@@ -390,12 +337,12 @@ if not preprocessed:
                     if match.group() != str(year):
                         continue
                     else:
-                        annual_data_dictList2d = stats_annual(
+                        annual_data_dict2List3d = stats_annual(
                                 excel_file=input_file_path, f_season_days_array1d=season_days_array1d
                             )
-                        stat_key_list = annual_data_dictList2d.keys()
+                        stat_key_list = annual_data_dict2List3d.keys()
                         for key in stat_key_list:
-                            period_data_dictList3d[key].append(annual_data_dictList2d[key])
+                            period_data_dictList3d[key].append(annual_data_dict2List3d[key])
 
                         print(f"Year {year} ({input_file}) for period {period+1} analysed.")
 
@@ -410,7 +357,7 @@ if not preprocessed:
 
     # Define aggregation operations for each key
     aggregation_functions = {
-        'cum': sum,
+        'sum': sum,
         'max': max,
         'min': min,
         'days': sum,

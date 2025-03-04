@@ -6,8 +6,6 @@ import re
 import sys
 import numpy as np
 import pandas as pd
-from datetime import datetime
-import h5py
 
 input_folder = r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test"
 preprocessed = False
@@ -67,31 +65,8 @@ def time_period(folder, f_period_length=period_length, check_complete=True):
 
 # No. of days in each of the 1 to 12 seasons in the year
 def annual_season_boundaries(no_of_seasons: int, current_year: int, seasons_defined = None):
-    """
-    Defines the number of days for each season in a year based on user-defined, predefined, or automated demarcations.
-
-    Args:
-        no_of_seasons (int): The number of seasons to divide the year into. Special cases:
-            - 0 or 1: Treat the whole year as a single season.
-            - 12: Treat each month as an individual season.
-        current_year (int): The year for which the calculation is being performed (used to determine leap years).
-        seasons_defined (list of tuples, optional): Predefined season boundaries in the format [(start_month, end_month), ...].
-
-    Returns:
-        tuple:
-            - f_days_of_month_dict (dict): Dictionary of the number of days in each month for the given year.
-            - f_months_of_year_list (list): List of month names in order.
-            - f_season_days_array1d (np.ndarray): Array containing the number of days in each season.
-            - user_defined_seasons_listTuple (list of tuples, optional): List of user-defined season boundaries if applicable.
-
-    Notes:
-        - Handles leap years to correctly calculate the days in February.
-        - Validates season definitions to ensure no overlaps or gaps between seasons.
-        - If no_of_seasons > 1 and not predefined, prompts the user to define seasons interactively.
-    """
-
     # Documenting all the number of days each month has in a year
-    f_days_of_month_dict = {
+    days_of_month_dict = {
         "jan": 31,
         "feb": 29 if ((current_year % 4 == 0 and current_year % 100 != 0) or (current_year % 400 == 0)) else 28,
         "mar": 31,
@@ -105,26 +80,26 @@ def annual_season_boundaries(no_of_seasons: int, current_year: int, seasons_defi
         "nov": 30,
         "dec": 31
     }
-    f_months_of_year_list = list(f_days_of_month_dict.keys())
+    months_of_year_list = list(days_of_month_dict.keys())
 
     f_season_days_array1d = np.zeros(1 if no_of_seasons == 0 else no_of_seasons, int)
 
     # Use predefined seasons if provided
     if seasons_defined is not None:
         for season_no, (start_month, end_month) in enumerate(seasons_defined):
-            season_months = f_months_of_year_list[
-                            f_months_of_year_list.index(start_month): f_months_of_year_list.index(end_month) + 1
+            season_months = months_of_year_list[
+                            months_of_year_list.index(start_month): months_of_year_list.index(end_month) + 1
                             ]
-            f_season_days_array1d[season_no] = sum(f_days_of_month_dict[month] for month in season_months)
-        return f_days_of_month_dict, f_months_of_year_list, f_season_days_array1d, seasons_defined
+            f_season_days_array1d[season_no] = sum(days_of_month_dict[month] for month in season_months)
+        return f_season_days_array1d, seasons_defined
 
     # If predefined seasons are not provided
     if no_of_seasons == 0 or no_of_seasons == 1:
-        f_season_days_array1d[0] = sum(f_days_of_month_dict.values())
+        f_season_days_array1d[0] = sum(days_of_month_dict.values())
         return f_season_days_array1d, None
     elif no_of_seasons == 12:
         for season_no in range(no_of_seasons):
-            f_season_days_array1d[season_no] = f_days_of_month_dict[f_months_of_year_list[season_no]]
+            f_season_days_array1d[season_no] = days_of_month_dict[months_of_year_list[season_no]]
         return f_season_days_array1d, None
     else:
         retype_season_months = True
@@ -141,7 +116,7 @@ def annual_season_boundaries(no_of_seasons: int, current_year: int, seasons_defi
                             print("\nRe-enter season boundaries...")
                             retype_season_months = True
                             break
-                        elif start_month not in f_days_of_month_dict:
+                        elif start_month not in days_of_month_dict:
                             print("Invalid month entered. Please try again.")
                             continue  # Retry this iteration
 
@@ -152,21 +127,21 @@ def annual_season_boundaries(no_of_seasons: int, current_year: int, seasons_defi
                             print("\nRe-enter season boundaries...")
                             retype_season_months = True
                             break
-                        elif end_month not in f_days_of_month_dict:
+                        elif end_month not in days_of_month_dict:
                             print("Invalid month entered. Please try again.")
                             continue  # Retry this iteration
 
-                        if f_months_of_year_list.index(end_month) < f_months_of_year_list.index(start_month):  # Check for season
+                        if months_of_year_list.index(end_month) < months_of_year_list.index(start_month):  # Check for season
                             print(
                                 f"\nEnding month must be after the starting month.\n"
                                 f"Please re-enter for season {season_no + 1}..."
                             )
                             continue  # Retry this iteration
 
-                        season_months = f_months_of_year_list[
-                                        f_months_of_year_list.index(start_month): f_months_of_year_list.index(end_month) + 1
+                        season_months = months_of_year_list[
+                                        months_of_year_list.index(start_month): months_of_year_list.index(end_month) + 1
                         ]
-                        season_days = sum(f_days_of_month_dict[month] for month in season_months)
+                        season_days = sum(days_of_month_dict[month] for month in season_months)
 
                         f_season_days_array1d[season_no] = season_days
                         user_defined_seasons_listTuple.append((start_month, end_month))
@@ -181,13 +156,137 @@ def annual_season_boundaries(no_of_seasons: int, current_year: int, seasons_defi
                     user_defined_seasons_listTuple = []
                     break
 
-            if sum(f_season_days_array1d) != sum(f_days_of_month_dict.values()) and not retype_season_months:  # Check for total days
+            if sum(f_season_days_array1d) != sum(days_of_month_dict.values()) and not retype_season_months:  # Check for total days
                 print("\nThe demarcation of seasons are not strict and have overlaps or gaps.\n"
                       "Please re-enter the season boundaries ensuring no overlap...")
                 user_defined_seasons_listTuple = []
                 retype_season_months = True
 
-    return f_days_of_month_dict, f_months_of_year_list, f_season_days_array1d, user_defined_seasons_listTuple
+    return f_season_days_array1d, user_defined_seasons_listTuple
 
 
+# Relevant seasonal stats are extracted for year of the current input file
+def stats_annual(excel_file: str,
+                 f_days_of_month_dict: dict[str, int],
+                 f_months_of_year_list: list[str],
+                 f_season_days_array1d: np.ndarray):
+    """
+    Compute annual statistics from the provided Excel file for each season, divided into 'daily', 'monthly', and 'seasonal' keys.
 
+    Args:
+        excel_file (str): Path to the Excel file containing the data.
+        f_days_of_month_dict (dict): Dictionary with month names as keys and number of days in each month as values.
+        f_months_of_year_list (list): List of month names in order.
+        f_season_days_array1d (np.ndarray): Array of season lengths in days.
+
+    Returns:
+        dict: A dictionary with calculated statistics for each season, including 'daily', 'monthly', and 'seasonal' keys.
+    """
+
+    df = pd.read_excel(excel_file)
+    f_annual_data_dict2List3d = {f_key: {'daily': [], 'monthly': [], 'seasonal': []} for f_key in
+                                 raw_stat_list + count_list}
+
+    day_counter = 0  # Tracks the day of the year
+    season_month_counter = 0
+    for season_days in f_season_days_array1d:
+        start_column = 3 + day_counter
+        end_column = start_column + season_days
+
+        # Extract daily data for the season
+        season_data = df.iloc[:, start_column:end_column].values
+
+        for f_key in raw_stat_list:
+            # DAILY VALUES
+            daily_stat = season_data.tolist()
+            f_annual_data_dict2List3d[f_key]['daily'].append(daily_stat)
+
+            # MONTHLY SUMS
+            monthly_stat = []
+            current_day = day_counter
+            local_month_counter = season_month_counter
+            while current_day < day_counter + season_days:
+                month = f_months_of_year_list[local_month_counter]
+                month_days = f_days_of_month_dict[month]
+
+                month_start = max(current_day, day_counter)  # Start from the beginning of the month or season
+                month_end = min(current_day + month_days,
+                                day_counter + season_days)  # End at month or season boundary
+
+                # Dynamically call the method on the slice of season_data.
+                current_month_stat = getattr(season_data[:, (month_start - day_counter):(month_end - day_counter)],
+                                             f_key)(axis=1)
+                monthly_stat.append(current_month_stat.tolist())
+
+                current_day += month_days
+
+                # Increment month_counter to the next month
+                local_month_counter = (local_month_counter + 1) % len(f_months_of_year_list)
+
+            f_annual_data_dict2List3d[f_key]['monthly'].append(monthly_stat)
+
+            # SEASONAL SUM
+            seasonal_stat = getattr(np, f_key)(np.array(monthly_stat), axis=0)
+            f_annual_data_dict2List3d[f_key]['seasonal'].append(seasonal_stat)
+
+        # Update the day_counter to the next season's start
+        day_counter += season_days
+        season_month_counter = local_month_counter
+    return f_annual_data_dict2List3d
+
+# --- Create Sample Data ---
+
+# Number of grid points (rows)
+num_grid_points = 5
+
+# Create coordinate data (for example, latitude, longitude, elevation)
+lat = np.linspace(10, 20, num_grid_points)
+lon = np.linspace(50, 60, num_grid_points)
+elev = np.linspace(100, 200, num_grid_points)
+
+# Number of daily data columns (for a non-leap year, 365 days)
+num_daily = 365
+# Create random daily data (e.g., rainfall amounts, temperature, etc.)
+daily_data = np.random.randint(0, 100, size=(num_grid_points, num_daily))
+
+# Build a DataFrame with 3 coordinate columns and 365 daily columns.
+columns = ["lat", "lon", "elev"] + [f"day{i+1}" for i in range(num_daily)]
+data = np.column_stack((lat, lon, elev, daily_data))
+df_sample = pd.DataFrame(data, columns=columns)
+
+# Save to an Excel file for testing purposes
+g_excel_file = "test_data.xlsx"
+df_sample.to_excel(g_excel_file, index=False)
+print(f"Sample data written to {g_excel_file}")
+
+# --- Define Parameters for stats_annual ---
+
+# For this test, we'll use a non-leap year
+g_days_of_month_dict = {
+    "jan": 31,
+    "feb": 28,
+    "mar": 31,
+    "apr": 30,
+    "may": 31,
+    "jun": 30,
+    "jul": 31,
+    "aug": 31,
+    "sep": 30,
+    "oct": 31,
+    "nov": 30,
+    "dec": 31
+}
+g_months_of_year_list = list(g_days_of_month_dict.keys())
+
+# Partition the 365-day year into 4 seasons:
+# For example: Season 1 = 90 days, Season 2 = 91 days, Season 3 = 92 days, Season 4 = 92 days
+season_days_array1d = np.array([90, 91, 92, 92])
+
+# --- Call the stats_annual Function ---
+
+# (Assuming your stats_annual function is defined as in your BASIS code.)
+result = stats_annual(g_excel_file, g_days_of_month_dict, g_months_of_year_list, season_days_array1d)
+
+# Print the result to verify
+print("Computed seasonal statistics:")
+print(result)
