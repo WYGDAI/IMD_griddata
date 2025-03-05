@@ -9,6 +9,7 @@
       <change beforePath="$PROJECT_DIR$/6_statistical_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/6_statistical_extractions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/minor_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/minor_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_data.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/test_data.xlsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,21 +54,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.4_rename.executor&quot;: &quot;Run&quot;,
-    &quot;Python.5_nc2excel.executor&quot;: &quot;Run&quot;,
-    &quot;Python.6_statistical_extractions.executor&quot;: &quot;Run&quot;,
-    &quot;Python.minor_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.ncInfo.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;adjusting-for-different-time-scales&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.4_rename.executor": "Run",
+    "Python.5_nc2excel.executor": "Run",
+    "Python.6_statistical_extractions.executor": "Run",
+    "Python.minor_test.executor": "Run",
+    "Python.ncInfo.executor": "Run",
+    "Python.test.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "adjusting-for-different-time-scales",
+    "ignore.virus.scanning.warn.message": "true",
+    "settings.editor.selected.configurable": "preferences.lookFeel"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -121,9 +122,14 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/6_statistical_extractions.py</url>
+          <line>427</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test.py</url>
-          <line>291</line>
-          <option name="timeStamp" value="1" />
+          <line>94</line>
+          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
