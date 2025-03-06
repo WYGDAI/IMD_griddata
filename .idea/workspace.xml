@@ -9,7 +9,6 @@
       <change beforePath="$PROJECT_DIR$/6_statistical_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/6_statistical_extractions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/minor_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/minor_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_data.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/test_data.xlsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,7 +60,7 @@
     "Python.6_statistical_extractions.executor": "Run",
     "Python.minor_test.executor": "Run",
     "Python.ncInfo.executor": "Run",
-    "Python.test.executor": "Debug",
+    "Python.test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "adjusting-for-different-time-scales",
@@ -117,21 +116,5 @@
     <MESSAGE value="6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working" />
     <MESSAGE value="6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods" />
     <option name="LAST_COMMIT_MESSAGE" value="6_statistical_extractions.py&#10;&#10;- not working&#10;- can extract time periods" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/6_statistical_extractions.py</url>
-          <line>427</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/test.py</url>
-          <line>94</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
