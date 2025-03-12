@@ -1,6 +1,5 @@
-import time
-import winsound
+a = 368.82 + 37.65
 
-winsound.Beep(1000, 500)
+x = a/1.05
 
-winsound.Beep(500, 1000)
+print(x, 0.025*x, 1.05*x)
