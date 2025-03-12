@@ -9,15 +9,16 @@ import numpy as np
 import pandas as pd
 from scipy.stats import skew, kurtosis
 
-# -- USER DEFINED --
+# region ----- USER DEFINED -----
 input_folder = r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test"
 indices_number = 3
 output_folder = r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test_out"
 
-period_length = 4
-raw_stat_list = ['sum']
+period_length = 3
+raw_stat_list = ['sum', 'max', 'min']
+# endregion
 
-# -- ACTUAL CODE (hopefully no touching required) --
+# region ----- DATA PREPROCESSING -----
 stat_scale_list = ['daily', 'monthly', 'seasonal']
 
 user_scale_list = []
@@ -281,7 +282,6 @@ def stats_annual(excel_file: str,
 
     return f_annual_data_dict2List3d
 
-# DATA PREPROCESSING
 # User inputs for seasons
 while True:
     try:
@@ -341,28 +341,29 @@ for period, years in time_periods.items():
     print(f"\nPeriod {period + 1} out of {len(time_periods)} added\n")
 winsound.Beep(700, 3000)
 print("The preprocessing steps are complete.")
+# endregion
 
-# STATISTICAL MOMENTS
+# region ----- STATISTICS COMPUTATIONS -----
+"""
+Compute the statistics of daily/monthly/seasonal values for each key (e.g., 'sum') for each season and grid point,
+over all years in a given period.
+
+The structure of f_final_data_dictList5d for a given key and subkey is assumed to be:
+  [P][Y][S][n][d/m] for all subkeys except seasonal where it is [P][Y][S][n]
+where P = period number, Y = number of years, S = seasons per year, n = grid points, and d/m = days/months in that season.
+
+Args:
+    f_final_data_dictList5d (dict): The nested dictionary containing the final data.
+    stat_list (list): List of keys to compute the statistics for. By default, this is raw_stat_list.
+    f_zeroes (bool): If True, compute the regular statistics.
+                   If False, ignore zero values in the computation.
+
+Returns:
+    dict: A dictionary with the same keys and subkeys containing the statistics computed for each season and grid point.
+"""
 def avg(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
         stat_list: list = None,
         f_zeroes=True):
-    """
-    Compute the mean of the daily/monthly/seasonal values for each key (e.g., 'sum') for each season and grid point,
-    averaging over all years in a given period and for all days.
-
-    The structure of f_final_data_dictList5d for a given key and subkey is assumed to be:
-      [P][Y][S][n][d/m] for all subkeys except seasonal where it is [P][Y][S][n]
-    where P = period number, Y = number of years, S = seasons per year, n = grid points, and d/m = days/months in that season.
-
-    Args:
-        f_final_data_dictList5d (dict): The nested dictionary containing the final data.
-        stat_list (list): List of keys to compute the mean for. By default, this is raw_stat_list.
-        f_zeroes (bool): If True, compute the normal arithmetic mean.
-                       If False, ignore zero values in the computation.
-
-    Returns:
-        dict: A dictionary with the same keys and subkeys containing the mean computed for each season and grid point.
-    """
 
     if stat_list is None:
         stat_list = raw_stat_list
@@ -388,24 +389,7 @@ def avg(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
 def std_dev(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
             stat_list: list = None,
             f_zeroes=True):
-    """
-    Compute the standard deviation of the daily/monthly/seasonal values for each key (e.g., 'sum') for each season and
-    grid point, averaging over all years in a given period and for all days.
 
-    The structure of f_final_data_dictList5d for a given key and subkey is assumed to be:
-      [P][Y][S][n][d/m] for all subkeys except seasonal where it is [P][Y][S][n]
-    where P = period number, Y = number of years, S = seasons per year, n = grid points, and d/m = days/months in that season.
-
-    Args:
-        f_final_data_dictList5d (dict): The nested dictionary containing the final data.
-        stat_list (list): List of keys to compute the standard deviation for. By default, this is raw_stat_list.
-        f_zeroes (bool): If True, compute the normal standard deviation.
-                       If False, ignore zero values in the computation.
-
-    Returns:
-        dict: A dictionary with the same keys and subkeys containing the standard deviation computed for each season
-              and grid point.
-    """
     if stat_list is None:
         stat_list = raw_stat_list
 
@@ -431,23 +415,7 @@ def std_dev(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
 def skewness(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
              stat_list: list = None,
              f_zeroes=True):
-    """
-    Compute the skewness of the daily/monthly/seasonal values for each key (e.g., 'sum') for each season and grid point,
-    averaging over all years in a given period and for all days.
 
-    The structure of f_final_data_dictList5d for a given key and subkey is assumed to be:
-      [P][Y][S][n][d/m] for all subkeys except seasonal where it is [P][Y][S][n]
-    where P = period number, Y = number of years, S = seasons per year, n = grid points, and d/m = days/months in that season.
-
-    Args:
-        f_final_data_dictList5d (dict): The nested dictionary containing the final data.
-        stat_list (list): List of keys to compute the skewness for. By default, this is raw_stat_list.
-        f_zeroes (bool): If True, compute the normal skew.
-                       If False, ignore zero values in the computation.
-
-    Returns:
-        dict: A dictionary with the same keys and subkeys containing the skew computed for each season and grid point.
-    """
     if stat_list is None:
         stat_list = raw_stat_list
 
@@ -476,23 +444,7 @@ def skewness(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
 def kurt(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
          stat_list: list = None,
          f_zeroes=True):
-    """
-    Compute the kurtosis of the daily/monthly/seasonal values for each key (e.g., 'sum') for each season and grid point,
-    averaging over all years in a given period and for all days.
 
-    The structure of f_final_data_dictList4d for a given key and subkey is assumed to be:
-      [P][Y][S][n][d/m] for all subkeys except seasonal where it is [P][Y][S][n]
-    where P = period number, Y = number of years, S = seasons per year, n = grid points, and d/m = days/months in that season.
-
-    Args:
-        f_final_data_dictList5d (dict): The nested dictionary containing the final data.
-        stat_list (list): List of keys to compute the kurtosis for. By default, this is raw_stat_list.
-        f_zeroes (bool): If True, compute the normal kurtosis.
-                       If False, ignore zero values in the computation.
-
-    Returns:
-        dict: A dictionary with the same keys and subkeys containing the kurtosis computed for each season and grid point.
-    """
     if stat_list is None:
         stat_list = raw_stat_list
 
@@ -515,6 +467,58 @@ def kurt(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
             f_kurtosis_dict2arr3d[f_key][f_subkey].append(f_kurt_3d)
     return f_kurtosis_dict2arr3d
 
+def min_value(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
+              stat_list: list = None,
+              f_zeroes=True):
+
+    if stat_list is None:
+        stat_list = raw_stat_list
+
+    f_min_dict2arr3d = {f_key: {f_scale: [] for f_scale in user_scale_list} for f_key in stat_list}
+    for f_key in stat_list:
+        for f_subkey in user_scale_list:
+            f_data = np.array(f_final_data_dictList5d[f_key][f_subkey])
+            if not f_zeroes:
+                f_data = np.ma.masked_equal(f_data, 0).filled(np.nan)
+
+            if f_data.ndim == 5:
+                f_min_data_3d = np.nanmin(f_data, axis=(1, -1))
+            elif f_data.ndim == 4:
+                f_min_data_3d = np.nanmin(f_data, axis=1)
+            else:
+                print("Unexpected error: Need to check code")
+                sys.exit("Statistical extractions")
+
+            f_min_data_3d = np.nan_to_num(f_min_data_3d, nan=np.inf)
+            f_min_dict2arr3d[f_key][f_subkey].append(f_min_data_3d)
+    return f_min_dict2arr3d
+
+def max_value(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
+              stat_list: list = None,
+              f_zeroes=True):
+
+    if stat_list is None:
+        stat_list = raw_stat_list
+
+    f_max_dict2arr3d = {f_key: {f_scale: [] for f_scale in user_scale_list} for f_key in stat_list}
+    for f_key in stat_list:
+        for f_subkey in user_scale_list:
+            f_data = np.array(f_final_data_dictList5d[f_key][f_subkey])
+            if not f_zeroes:
+                f_data = np.ma.masked_equal(f_data, 0).filled(np.nan)
+
+            if f_data.ndim == 5:
+                f_max_data_3d = np.nanmax(f_data, axis=(1, -1))
+            elif f_data.ndim == 4:
+                f_max_data_3d = np.nanmax(f_data, axis=1)
+            else:
+                print("Unexpected error: Need to check code")
+                sys.exit("Statistical extractions")
+
+            f_max_data_3d = np.nan_to_num(f_max_data_3d, nan=-np.inf)
+            f_max_dict2arr3d[f_key][f_subkey].append(f_max_data_3d)
+    return f_max_dict2arr3d
+
 print("Proceeding to compute statistical measures...\n")
 
 # Asking the user whether zeroes need to be considered or not for calculations
@@ -526,7 +530,12 @@ while True:
     else:
         print("Please enter 'y' or 'n'")
 
-stat_dictFunc = {'mean': avg, 'standard deviation': std_dev, 'skew': skewness, 'kurtosis': kurt}
+stat_dictFunc = {'mean': avg,
+                 'stdDeviation': std_dev,
+                 'skew': skewness,
+                 'kurtosis': kurt,
+                 'minimum': min_value,
+                 'maximum': max_value}
 
 # Preparing the index columns for dataframe
 for file in os.listdir(input_folder):
@@ -543,11 +552,15 @@ for stat in stat_dictFunc.keys():
         stat_required = input(f"Do you want to compute {stat}? [y/n]: ").strip().lower()
         if stat_required in ('y', 'n'):
             if stat_required == 'y':
+                stat_outFolder = output_folder + rf"\{period_length}year-{stat}_statistics"
+                os.makedirs(stat_outFolder, exist_ok=True)
                 stat_dict2arr3d = stat_dictFunc[stat](final_data_dictList5d, f_zeroes=zeroes)
                 for key in stat_dict2arr3d.keys():
-                    print(f"\nProcessing {stat} data...")
+                    print(f"\nProcessing {stat} statistics of '{key}' data...")
+                    key_outFolder = stat_outFolder + rf"\{key}_dataStats"
+                    os.makedirs(key_outFolder, exist_ok=True)
                     for subkey in stat_dict2arr3d[key].keys():
-                        excel_file_path = os.path.join(output_folder, f"{key}-{subkey}_{stat}.xlsx")
+                        excel_file_path = os.path.join(key_outFolder, f"{period_length}year_{subkey}-{key}_{stat}.xlsx")
                         with pd.ExcelWriter(excel_file_path) as writer:
                             for index in range(stat_dict2arr3d[key][subkey][0].shape[0]):
                                 df_arr = pd.DataFrame(stat_dict2arr3d[key][subkey][0][index].T)
@@ -558,12 +571,13 @@ for stat in stat_dictFunc.keys():
                                     sheet_name=f"{list(time_periods.values())[index][0]}_{list(time_periods.values())[index][-1]}",
                                     index=False
                                 )
-                                print(f"{stat.capitalize()} of {subkey} '{key}' data for time period {list(time_periods.values())[index][0]} to {list(time_periods.values())[index][-1]} generated")
-                        print(f"{stat.capitalize()} of {subkey} '{key}' data generated\n"
-                              f"Saved excel file path: ", excel_file_path)
+                                print(f"{stat.capitalize()} statistics of {subkey} '{key}' data for time period {list(time_periods.values())[index][0]} to {list(time_periods.values())[index][-1]} generated")
+                        print(f"{stat.capitalize()} statistics of {subkey} '{key}' data generated for all periods\n"
+                              f"Saved excel file path: {excel_file_path}\n")
                         winsound.Beep(1000, 200)
-                    print(f"\nStatistical data generation for '{key}' is completed")
+                    print(f"{stat.capitalize()} statistics data for '{key}' is generated")
                     winsound.Beep(1000, 3000)
             break
         else:
             print("Please enter 'y' or 'n'")
+# endregion

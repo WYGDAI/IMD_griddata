@@ -7,8 +7,6 @@
     <list default="true" id="a5b8455d-26dd-44f3-8235-0b0fb3342af3" name="Changes" comment="6_statistical_extractions.py&#10;&#10;- preprocessing of number of days in user defined seasons working">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/6_statistical_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/6_statistical_extractions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/minor_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/minor_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
