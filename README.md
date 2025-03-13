@@ -26,5 +26,11 @@ The numbers preceeding the file name of each code is the expected running order 
   
 6. 5_nc2excel
    - gives an excel file for the final .nc file
+   - rows: grid points, columns: days of the year
+   - 3 index columns with headers: " ", "Lat", "Lon"
+  
+7. 6_statistical_extractions
+   - for computation of various statistical measures from the generated excel files
+   - gives an excel file
   
 Further information on each of the individual codes are provided in the description section within each code.
