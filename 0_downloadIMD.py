@@ -65,6 +65,7 @@ var = 'temp_min'
 start_year = 2023
 end_year = 2024
 
+
 # Checking compatibility of Chrome and chromeDriver
 try:
     driver = webdriver.Chrome(service=Service(chromeDriver))

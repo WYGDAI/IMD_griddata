@@ -1,6 +1,88 @@
 """
 EXTRACTING VARIOUS STATISTICAL PROPERTIES OF IMD DATA
+
+This code will extract various statistical properties from an Excel file containing data from IMD
+    - Only the section "----- USER DEFINED -----" is intended to be edited by the user
+
+The variables that need to be adjusted are given in lines to
+    - folder in which all the yearly Excel sheets for a particular IMD variable are present: "input_folder"
+    - folder where the final statistical outputs are to be saved: "output_folder"
+
+    - "no_of_index_cols"
+        + This variable represents the number of columns at the beginning that the statistic computation will ignore
+        + To be used if the initial columns of the Excel sheets have index columns such as "serial number", "latitude", "longitude" etc.
+        + If the Excel sheets are generated from the previous codes given in the series (especially the "5_nc2excel.py" code")
+            + no_of_index_cols = 3 (pertaining to " ", "Lat", "Lon" columns)
+
+    - "period_length"
+        + to divide the annual files in "input_folder" to periods of "period_length" years
+            + for period-wise analysis (e.g. '10-year mean annual rainfall for 1901-2000' where "period_length" = 10)
+            + say, if the user has data for 5 years from 2000 to 2004, and the "period_length" is given as 4
+                + we will have 2 periods, viz. 2000-2003 and 2001-2004, for which the statistical measures will be computed
+        + if statistics are to be calculated for the entire times span, it will have the number of total files within "input_folder" as its value
+            + no default value, needs to be typed in
+
+    - The IMD variable of the data in the Excel sheets: "variable"
+        + rain: Rainfall
+        + maxtemp: Maximum Temperature
+        + mintemp: Minimum Temperature
+        + meantemp: Mean Temperature
+            + The mean temperature can be calculated by averaging the maximum and minimum temperature data that are directly available from IMD
+            + code "6a_meanTemp.py" can be used for this purpose
+
+
+BRIEF OVERVIEW OF WORKING OF THE CODE:
+
+1. First the user will be asked what scales (temporal) of computation he/she desires in [y/n] formats
+    - daily (e.g. daily mean, std. deviation of daily rainfall around daily mean etc.)
+    - monthly (check step 2 for increasing efficiency in a particular case)
+    - seasonal
+
+2. Next the user will be asked about the number of seasons he/she wishes to consider in a year.
+    - {0, 1}: 1 season in the year (i.e., yearly analysis)
+    - 12: Every month will be considered as its own season (i.e. monthly analysis)
+        + if this option is chosen, then 'monthly' and 'seasonal' options in step 1 will give the same results
+        + only one of 'monthly' or 'seasonal' should be chosen in step 1 for efficiency in this case
+    - (1, 12): user defined months
+        + in this case, the user will be asked to enter the starting and ending months of each season
+        + months will be represented by their first 3 letters (i.e., jan, feb, mar, ..., oct, nov, dec)
+
+3. If "variable" is 'rain'
+    - the user will be asked whether to include zeroes in the calculation
+        + zeroes are usually excluded in statistical calculations of rainfall data to avoid underestimations
+
+4. One by one, the user will be asked if he/she wants to calculate a particular measure
+    - each of the measures the user agrees to compute will create its own folder in the "output_folder" path the user has defined
+
+    - if your "variable" is 'rain'
+        + within each folder for statistical measure, a single folder will be formed where Excel files will be generated
+            + each Excel file will correspond to a particular scale of computation the user defined (from ['daily', 'monthly', 'seasonal'])
+            + the Excel file will have the same index_columns as in the original input files and then will have the statistical data after that
+                + rows correspond to grid points
+                + columns correspond to seasons the user has defined
+                + each sheet will have data for different periods as per "period_length"
+        e.g. each point in the first sheet of '3year_daily_mean-of_sum_rainStats.xlsx' will give the daily mean rainfall for the first 3-year time period for a particular season
+                + say, the daily mean rainfall for the first 3-year time period for Jan-May (if that is the user defined 1st season)
+                + ignore (sum) in the naming of the file
+
+    - if your "variable" is any of the temperature variables i.e., ['mintemp', 'maxtemp', 'meantemp']
+        + within each folder for statistical measure, three folders will be formed where Excel files will be generated
+            + one each for max (e.g. max_mintempStats), min (e.g. min_mintempStats), mean (e.g. mean_mintempStats)
+            + the rest is similar as before with "variable" as 'rain'
+        e.g. each point in the first sheet of '3year_monthly_mean-of_min_maxtempStats.xlsx' will give the mean of lowest monthly maximum temperature for the first 3-year time period for a particular season
+                + say, the mean of lowest monthly maximum temperature for the first 3-year time period for Jan-May (if that is the user defined 1st season)
+            + an important point to note that
+                + '3year_daily_minimum-of_min_mintempStats.xlsx'
+                + '3year_monthly_minimum-of_min_mintempStats.xlsx'
+                + '3year_seasonal_minimum-of_min_mintempStats.xlsx'
+             will all have identical files due to successive minimization which ends up same in all scales. That is not the case for, say,
+                + '3year_daily_maximum-of_min_mintempStats.xlsx' and its other scale counterparts
+
+    - for 'skew' and 'kurtosis' functions, ignore the warning that pops up
+
+                                                    - k.r.bro_05
 """
+
 import os
 import re
 import sys
@@ -11,16 +93,24 @@ from scipy.stats import skew, kurtosis
 
 # region ----- USER DEFINED -----
 input_folder = r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test"
-indices_number = 3
 output_folder = r"C:\Users\koust\Desktop\PhD\IMD_grid\5_IMDexcel\test_out"
 
+no_of_index_cols = 3
+
 period_length = 3
-raw_stat_list = ['sum', 'max', 'min']
+variable = 'mintemp'
 # endregion
 
 # region ----- DATA PREPROCESSING -----
-stat_scale_list = ['daily', 'monthly', 'seasonal']
+if variable.lower() in ['rain',  'rainfall']:
+    raw_stat_list = ['sum']
+elif variable.lower() in ['mintemp', 'maxtemp', 'meantemp']:
+    raw_stat_list = ['max', 'min', 'mean']
+else:
+    print("Ensure that 'variable' has a valid value in USER DEFINED section")
+    sys.exit("Variable error")
 
+stat_scale_list = ['daily', 'monthly', 'seasonal']
 user_scale_list = []
 while not user_scale_list:
     for scale in stat_scale_list:
@@ -207,8 +297,8 @@ def stats_annual(excel_file: str,
     """
 
     df = pd.read_excel(excel_file)
-    if df.shape[1] == indices_number + 365: # to ensure dimensions match for leap and non-leap year data
-        df.insert(indices_number + 59, '', np.nan)
+    if df.shape[1] == no_of_index_cols + 365: # to ensure dimensions match for leap and non-leap year data
+        df.insert(no_of_index_cols + 59, '', np.nan)
         df.columns = list(range(df.shape[1]))
 
     f_annual_data_dict2List3d = {f_key: {f_scale: [] for f_scale in user_scale_list} for f_key in
@@ -219,7 +309,7 @@ def stats_annual(excel_file: str,
     max_days = int(np.max(f_season_days_array1d))
 
     for season_days in f_season_days_array1d:
-        start_column = indices_number + day_counter
+        start_column = no_of_index_cols + day_counter
         end_column = start_column + season_days
 
         # Extract daily data for the season
@@ -522,13 +612,16 @@ def max_value(f_final_data_dictList5d: dict[str, dict[str, list[list[list]]]],
 print("Proceeding to compute statistical measures...\n")
 
 # Asking the user whether zeroes need to be considered or not for calculations
-while True:
-    zeroes_input = input("Do you want zeroes to be included in the computation? [y/n]: ").strip().lower()
-    if zeroes_input in ('y', 'n'):
-        zeroes = True if zeroes_input =='y' else False
-        break
-    else:
-        print("Please enter 'y' or 'n'")
+if variable == 'rain':
+    while True:
+        zeroes_input = input("Do you want zeroes to be included in the computation? [y/n]: ").strip().lower()
+        if zeroes_input in ('y', 'n'):
+            zeroes = True if zeroes_input =='y' else False
+            break
+        else:
+            print("Please enter 'y' or 'n'")
+else:
+    zeroes = True
 
 stat_dictFunc = {'mean': avg,
                  'stdDeviation': std_dev,
@@ -544,7 +637,7 @@ for file in os.listdir(input_folder):
             reference_file = os.path.join(input_folder, file)
             break
 df_reference = pd.read_excel(reference_file, index_col=None)
-reference_col = df_reference.iloc[:, :indices_number]
+reference_col = df_reference.iloc[:, :no_of_index_cols]
 
 # Main code to calculate all statistical moments
 for stat in stat_dictFunc.keys():
@@ -552,15 +645,15 @@ for stat in stat_dictFunc.keys():
         stat_required = input(f"Do you want to compute {stat}? [y/n]: ").strip().lower()
         if stat_required in ('y', 'n'):
             if stat_required == 'y':
-                stat_outFolder = output_folder + rf"\{period_length}year-{stat}_statistics"
+                stat_outFolder = output_folder + rf"\{period_length}year-{stat}-of_{variable}Stats"
                 os.makedirs(stat_outFolder, exist_ok=True)
                 stat_dict2arr3d = stat_dictFunc[stat](final_data_dictList5d, f_zeroes=zeroes)
                 for key in stat_dict2arr3d.keys():
-                    print(f"\nProcessing {stat} statistics of '{key}' data...")
-                    key_outFolder = stat_outFolder + rf"\{key}_dataStats"
+                    print(f"\nProcessing {stat} statistics of '{key}' {variable} data...")
+                    key_outFolder = stat_outFolder + rf"\{key}_{variable}Stats"
                     os.makedirs(key_outFolder, exist_ok=True)
                     for subkey in stat_dict2arr3d[key].keys():
-                        excel_file_path = os.path.join(key_outFolder, f"{period_length}year_{subkey}-{key}_{stat}.xlsx")
+                        excel_file_path = os.path.join(key_outFolder, f"{period_length}year_{subkey}_{stat}-of_{key}_{variable}Stats.xlsx")
                         with pd.ExcelWriter(excel_file_path) as writer:
                             for index in range(stat_dict2arr3d[key][subkey][0].shape[0]):
                                 df_arr = pd.DataFrame(stat_dict2arr3d[key][subkey][0][index].T)
@@ -571,12 +664,11 @@ for stat in stat_dictFunc.keys():
                                     sheet_name=f"{list(time_periods.values())[index][0]}_{list(time_periods.values())[index][-1]}",
                                     index=False
                                 )
-                                print(f"{stat.capitalize()} statistics of {subkey} '{key}' data for time period {list(time_periods.values())[index][0]} to {list(time_periods.values())[index][-1]} generated")
-                        print(f"{stat.capitalize()} statistics of {subkey} '{key}' data generated for all periods\n"
+                                print(f"{stat.capitalize()} statistics of {subkey} '{key}' {variable }data for time period {list(time_periods.values())[index][0]} to {list(time_periods.values())[index][-1]} generated")
+                        print(f"{stat.capitalize()} statistics of {subkey} '{key}' {variable} data generated for all periods\n"
                               f"Saved excel file path: {excel_file_path}\n")
-                        winsound.Beep(1000, 200)
-                    print(f"{stat.capitalize()} statistics data for '{key}' is generated")
-                    winsound.Beep(1000, 3000)
+                    print(f"{stat.capitalize()} statistics for '{key}' {variable} is generated")
+                winsound.Beep(1000, 3000)
             break
         else:
             print("Please enter 'y' or 'n'")
